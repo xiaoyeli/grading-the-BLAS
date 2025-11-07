@@ -9,33 +9,33 @@
 #define Z_RATIO 0.33
 
 template <typename T>
-void init_zero_matrix( T *A, const uint32_t m, const uint32_t n ){
+void init_zero_matrix( T *A, const uint32_t lda, const uint32_t m, const uint32_t n ){
 
     uint32_t i, j;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            A[i*m + j] = 0.0d;
+            A[i*lda + j] = 0.0;
         }
     }
     return;
 }
 
 template <typename T_to, typename T_from>
-void copy_matrix( T_to *out, T_from *in, const uint32_t m, uint32_t n ){
+void copy_matrix( T_to *A, const uint32_t lda, T_from *B, const uint32_t ldb, const uint32_t m, uint32_t n ){
     
     uint32_t i, j;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            out[i*m + j] = in[i*m + j];
+            A[i*lda + j] = B[i*ldb + j];
         }
     }
     return;
 }
 
 template <typename T>
-void init_test1_matrices( T *A, T *B, const uint32_t m, const uint32_t k, const uint32_t n){
+void init_test1_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t k, const uint32_t n){
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -71,10 +71,10 @@ void init_test1_matrices( T *A, T *B, const uint32_t m, const uint32_t k, const 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < k; ++j ){
             if ( zero_rows_A[i] ){
-                A[i*k + j] = 0.0d;
+                A[i*lda + j] = 0.0;
             }
             else{
-                A[i*k + j] = generator(rd);
+                A[i*lda + j] = generator(rd);
             }
         }
     }
@@ -82,10 +82,10 @@ void init_test1_matrices( T *A, T *B, const uint32_t m, const uint32_t k, const 
     for ( i = 0; i < k; ++i ){
         for ( j = 0; j < n; ++j ){
             if ( zero_cols_B[j] ){
-                B[i*n + j] = 0.0d;
+                B[i*ldb + j] = 0.0;
             }
             else{
-                B[i*n + j] = generator(rd);
+                B[i*ldb + j] = generator(rd);
             }
         }
     }  
