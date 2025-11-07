@@ -5,7 +5,20 @@
 #include <quadmath.h>
 
 template <typename T>
-void print_matrix( T *A, const uint32_t m, const uint32_t n ){
+void print_matrix_bytes_to_stdout( T *A, const uint32_t m, const uint32_t n ){
+    uint32_t i, j;
+
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < n; ++j ){
+            printf("%a\n", A[i*n+j]);
+        }
+    }
+    
+    return;
+}
+
+template <typename T>
+void print_matrix_to_stdout( T *A, const uint32_t m, const uint32_t n ){
     uint32_t i, j;
 
     for ( i = 0; i < m; ++i ){

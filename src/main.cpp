@@ -16,6 +16,7 @@ int main(){
     double A[m*k];
     double B[k*n];
     double C[m*n];
+    double low_prec_buffer[m*n];
     __float128 high_prec_buffer[m*n];
     __float128 Aq[m*k];
     __float128 Bq[k*n];
@@ -29,19 +30,20 @@ int main(){
     copy_matrix(Bq, B, k, n);
     init_zero_matrix(Cq, m, n);
 
-    // run classical gemm in quad precision
-    classical_gemm(Aq, Bq, m, k, n, Cq);
-    
-    // run classical gemm in double precision and cast
-    // to quad precision for error calculation
+    // run classical gemm and cast output
+    // to high precision for error calculation
     classical_gemm(A, B, m, k, n, C);
     copy_matrix(high_prec_buffer, C, m, n);
 
+    // run classical gemm in high precision
+    classical_gemm(Aq, Bq, m, k, n, Cq);
+    
     // calculate errors
     get_elementwise_abs_errors( Cq, high_prec_buffer, m, n, errors );
 
     // print errors
-    print_matrix_128(errors, m, n);
+    copy_matrix(low_prec_buffer, errors, m, n);
+    print_matrix_bytes_to_stdout(low_prec_buffer, m, n);
 
     return 0;
 }
