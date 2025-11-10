@@ -1,6 +1,11 @@
 CXX := g++
 CXXFLAGS := -O0 -std=c++17 -Wall -Wextra -Iinclude -MMD -MP
 LDFLAGS := -lquadmath
+CPPFLAGS ?=
+
+ifeq ($(SANITY),1)
+CPPFLAGS += -DSANITY
+endif
 
 # directories
 SRC_DIR := src
@@ -21,7 +26,7 @@ $(BIN): $(OBJS)
 
 # Compilation
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
 
 # Ensure obj/ exists
 $(OBJ_DIR):

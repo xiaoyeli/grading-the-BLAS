@@ -35,7 +35,28 @@ void copy_matrix( T_to *A, const uint32_t lda, T_from *B, const uint32_t ldb, co
 }
 
 template <typename T>
-void init_test1_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t k, const uint32_t n){
+void init_sanity_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t k, const uint32_t n ){
+
+    uint32_t i, j;
+
+    // initialize matrices
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < k; ++j ){
+            A[i*lda + j] = i*lda + j;
+        }
+    }
+
+    for ( i = 0; i < k; ++i ){
+        for ( j = 0; j < n; ++j ){
+            B[i*ldb + j] = 1 + i*ldb + j;
+        }
+    }  
+
+    return;
+}
+
+template <typename T>
+void init_test1_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t k, const uint32_t n ){
 
     std::random_device rd;
     std::mt19937 gen(rd());
