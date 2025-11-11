@@ -81,7 +81,7 @@ void init_test1_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, co
     for ( i = 0; i < n_zero; ++i ){
         zero_cols_B[i] = true;
     }
-    for ( i = n_zero; i < m; ++i ){
+    for ( i = n_zero; i < n; ++i ){
         zero_cols_B[i] = false;
     }
 
