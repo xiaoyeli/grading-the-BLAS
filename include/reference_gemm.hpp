@@ -1,5 +1,5 @@
-#ifndef REFERENCE_GEMM_H
-#define REFERENCE_GEMM_H
+#ifndef REFERENCE_GEMM_HPP
+#define REFERENCE_GEMM_HPP
 
 #include <stdint.h>
 

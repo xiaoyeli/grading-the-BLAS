@@ -1,5 +1,5 @@
-#ifndef INIT_MATRICES_H
-#define INIT_MATRICES_H
+#ifndef INIT_MATRICES_HPP
+#define INIT_MATRICES_HPP
 
 #include <stdint.h>
 #include <random>
