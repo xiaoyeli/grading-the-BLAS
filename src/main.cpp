@@ -10,13 +10,16 @@
 int main(){
     uint32_t m, k, n;
     uint32_t i, j, p;
+    uint32_t min_dim, max_dim;
     
 #ifdef SANITY
-    m = n = k = i = j = p = 2;
+    min_dim = max_dim = 2
 #else
-    m = n = k = 1024;
-    i = j = p = 128;
+    max_dim = 1024;
+    min_dim = 128;
 #endif
+
+    m = n = k = max_dim;
 
     std::vector<double> A(m*k);
     std::vector<double> B(k*n);
@@ -29,9 +32,9 @@ int main(){
     std::vector<__float128> errors(m*n);
     
     std::ofstream outfile1("reference_errors.bin", std::ios::binary);
-    for ( ; i <= m; i = 2*i ){
-        for ( ; j <= n; j = 2*j ){
-            for ( ; p <= k; p = 2*p ){    
+    for ( i = min_dim; i <= max_dim; i = 2*i ){
+        for ( j = min_dim; j <= max_dim; j = 2*j ){
+            for ( p = min_dim; p <= max_dim; p = 2*p ){    
 
                 // initialize matrices
 #ifdef SANITY
