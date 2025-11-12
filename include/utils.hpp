@@ -36,16 +36,27 @@ void print_matrix_bytes_to_stdout( T *A, const uint32_t lda, const uint32_t m, c
 }
 
 template <typename T>
-void print_matrix_to_stdout( T *A, const uint32_t lda, const uint32_t m, const uint32_t n ){
+void print_matrix_to_stdout( T *A, const uint32_t lda, const uint32_t m, const uint32_t n, bool transpose ){
     uint32_t i, j;
 
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
-            printf("%f ", A[i*lda+j]);
+    if ( transpose ){
+        for ( i = 0; i < m; ++i ){
+            for ( j = 0; j < n; ++j ){
+                printf("%f ", A[j*lda+i]);
+            }
+            printf("\n");
         }
         printf("\n");
     }
-    printf("\n");
+    else{
+        for ( i = 0; i < m; ++i ){
+            for ( j = 0; j < n; ++j ){
+                printf("%f ", A[i*lda+j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+    }
     
     return;
 }
@@ -74,6 +85,43 @@ void get_elementwise_abs_errors( T *A, const uint32_t lda, T *B, const uint32_t 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
             C[i*ldc + j] = fabs(B[i*ldb + j] - A[i*lda + j]);
+        }
+    }
+
+    return;
+}
+
+template <typename T>
+void get_elementwise_errors( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t n, T *C, const uint32_t ldc ){
+    uint32_t i, j;
+
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < n; ++j ){
+            C[i*ldc + j] = B[i*ldb + j] - A[i*lda + j];
+        }
+    }
+
+    return;
+}
+
+
+template <typename T_to, typename T_from>
+void copy_matrix( T_to *A, const uint32_t lda, T_from *B, const uint32_t ldb, const uint32_t m, uint32_t n, bool transpose ){
+    
+    uint32_t i, j;
+
+    if ( transpose ){
+        for ( i = 0; i < m; ++i ){
+            for ( j = 0; j < n; ++j ){
+                A[i*lda + j] = B[j*ldb + i];
+            }
+        }
+    }
+    else{
+        for ( i = 0; i < m; ++i ){
+            for ( j = 0; j < n; ++j ){
+                A[i*lda + j] = B[i*ldb + j];
+            }
         }
     }
 

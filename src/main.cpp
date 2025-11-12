@@ -6,6 +6,7 @@
 #include <quadmath.h>
 #include <fstream>
 #include <vector>
+#include "blis.h"
 
 int main(){
     uint32_t m, k, n;
@@ -13,10 +14,11 @@ int main(){
     uint32_t min_dim, max_dim;
     
 #ifdef SANITY
-    min_dim = max_dim = 2
+    min_dim = 2;
+    max_dim = 4;
 #else
-    max_dim = 1024;
-    min_dim = 128;
+    max_dim = 512;
+    min_dim = 64;
 #endif
 
     m = n = k = max_dim;
@@ -30,8 +32,9 @@ int main(){
     std::vector<__float128> Bq(k*n);
     std::vector<__float128> Cq(m*n);
     std::vector<__float128> errors(m*n);
-    
+
     std::ofstream outfile1("reference_errors.bin", std::ios::binary);
+    std::ofstream outfile2("blis_errors.bin", std::ios::binary);
     for ( i = min_dim; i <= max_dim; i = 2*i ){
         for ( j = min_dim; j <= max_dim; j = 2*j ){
             for ( p = min_dim; p <= max_dim; p = 2*p ){    
@@ -43,35 +46,51 @@ int main(){
                 init_test1_matrices(&A[0], k, &B[0], n, i, p, j);
 #endif
                 init_zero_matrix(&C[0], n, i, j);
-                copy_matrix(&Aq[0], k, &A[0], k, i, p);
-                copy_matrix(&Bq[0], n, &B[0], n, p, j);
+                copy_matrix(&Aq[0], k, &A[0], k, i, p, false);
+                copy_matrix(&Bq[0], n, &B[0], n, p, j, false);
                 init_zero_matrix(&Cq[0], n, i, j);
             
 #ifdef SANITY
                 printf("A:\n");
-                print_matrix_to_stdout(&A[0], k, i, p);
+                print_matrix_to_stdout(&A[0], k, i, p, false);
                 printf("B:\n");
-                print_matrix_to_stdout(&B[0], n, p, j);
+                print_matrix_to_stdout(&B[0], n, p, j, false);
 #endif
 
                 // run reference gemm in high precision
                 reference_gemm(&Aq[0], k, &Bq[0], n, i, p, j, &Cq[0], n);
-
+                
                 // run reference gemm and calculate errors
                 reference_gemm(&A[0], k, &B[0], n, i, p, j, &C[0], n);
-                copy_matrix(&high_prec_buffer[0], n, &C[0], n, i, j);
-                get_elementwise_abs_errors(&Cq[0], n, &high_prec_buffer[0], n, i, j, &errors[0], n);
-                copy_matrix(&low_prec_buffer[0], n, &errors[0], n, i, j);
+                copy_matrix(&high_prec_buffer[0], n, &C[0], n, i, j, false);
+                get_elementwise_errors(&Cq[0], n, &high_prec_buffer[0], n, i, j, &errors[0], n);
+                copy_matrix(&low_prec_buffer[0], n, &errors[0], n, i, j, false);
                 write_matrix_bytes_to_file(outfile1, &low_prec_buffer[0], n, i, j);
+
+                // run blis gemm and calculate errors
+                char transpose = 'T';
+                double alpha = 1.0;
+                double beta = 0.0;
+                int32_t ii = i;
+                int32_t jj = j;
+                int32_t pp = p;
+                int32_t mm = m;
+                int32_t kk = k;
+                dgemm_(&transpose, &transpose, &ii, &jj, &pp, &alpha, &A[0], &mm, &B[0], &kk, &beta, &C[0], &mm);
+                copy_matrix(&high_prec_buffer[0], n, &C[0], n, i, j, true);
+                get_elementwise_errors(&Cq[0], n, &high_prec_buffer[0], n, i, j, &errors[0], n);
+                copy_matrix(&low_prec_buffer[0], n, &errors[0], n, i, j, false);
+                write_matrix_bytes_to_file(outfile2, &low_prec_buffer[0], n, i, j);
 
 #ifdef SANITY
                 printf("C:\n");
-                print_matrix_to_stdout(&C[0], n, i, j);
+                print_matrix_to_stdout(&C[0], n, i, j, true);
 #endif
             }    
         }    
     }    
     outfile1.close();
+    outfile2.close();
     
     return 0;
 }
