@@ -6,36 +6,36 @@
 #include <algorithm>
 #include <vector>
 
-#define Z_RATIO 0.33
+#define Z_RATIO 0.25
 
 template <typename T>
-void init_zero_matrix( T *A, const uint32_t lda, const uint32_t m, const uint32_t n ){
+void init_zero_matrix( T *A, const int32_t lda, const int32_t m, const int32_t n ){
 
-    uint32_t i, j;
+    int32_t i, j;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            A[i*lda + j] = 0.0;
+            A[i + j*lda] = 0.0;
         }
     }
     return;
 }
 
 template <typename T>
-void init_sanity_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t k, const uint32_t n ){
+void init_sanity_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
 
-    uint32_t i, j;
+    int32_t i, j;
 
     // initialize matrices
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < k; ++j ){
-            A[i*lda + j] = i*lda + j;
+            A[i + j*lda] = i + j*lda;
         }
     }
 
     for ( i = 0; i < k; ++i ){
         for ( j = 0; j < n; ++j ){
-            B[i*ldb + j] = 1 + i*ldb + j;
+            B[i + j*ldb] = 1 + i + j*ldb;
         }
     }  
 
@@ -43,18 +43,18 @@ void init_sanity_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, c
 }
 
 template <typename T>
-void init_test1_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t k, const uint32_t n ){
+void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<T> generator(0.0d, 1.0d);
 
-    uint32_t i, j;
+    int32_t i, j;
 
     // figure out which rows/columns to zero
     std::vector<bool> zero_rows_A(m);
     std::vector<bool> zero_cols_B(n);
-    uint32_t n_zero;
+    int32_t n_zero;
 
     n_zero = std::max(1, (int)(Z_RATIO*m));
     for ( i = 0; i < n_zero; ++i ){
@@ -79,10 +79,10 @@ void init_test1_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, co
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < k; ++j ){
             if ( zero_rows_A[i] ){
-                A[i*lda + j] = 0.0;
+                A[i + j*lda] = 0.0;
             }
             else{
-                A[i*lda + j] = generator(rd);
+                A[i + j*lda] = generator(rd);
             }
         }
     }
@@ -90,10 +90,10 @@ void init_test1_matrices( T *A, const uint32_t lda, T *B, const uint32_t ldb, co
     for ( i = 0; i < k; ++i ){
         for ( j = 0; j < n; ++j ){
             if ( zero_cols_B[j] ){
-                B[i*ldb + j] = 0.0;
+                B[i + j*ldb] = 0.0;
             }
             else{
-                B[i*ldb + j] = generator(rd);
+                B[i + j*ldb] = generator(rd);
             }
         }
     }  

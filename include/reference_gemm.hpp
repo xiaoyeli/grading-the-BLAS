@@ -4,14 +4,14 @@
 #include <stdint.h>
 
 template <typename T>
-void reference_gemm( T *A, const uint32_t lda, T *B, const uint32_t ldb, uint32_t m, uint32_t k, uint32_t n, T *C, const uint32_t ldc ){
+void reference_gemm( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n, T *C, const int32_t ldc ){
     
-    uint32_t i, j, p;
+    int32_t i, j, p;
 
     for ( i = 0; i < m; ++i ){
-        for ( p = 0; p < k; ++p ){
-            for ( j = 0; j < n; ++j ){
-                C[i*ldc + j] = A[i*lda + p] * B[p*ldb + j] + C[i*ldc + j];
+        for ( j = 0; j < n; ++j ){
+            for ( p = 0; p < k; ++p ){
+                C[i + j*ldc] = A[i + p*lda] * B[p + j*ldb] + C[i + j*ldc];
             }
         }
     }

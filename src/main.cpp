@@ -9,10 +9,10 @@
 #include "blis.h"
 
 int main(){
-    uint32_t m, k, n;
-    uint32_t i, j, p;
-    uint32_t min_dim, max_dim;
-    
+    int32_t m, k, n, lda, ldb, ldc;
+    int32_t i, j, p;
+    int32_t min_dim, max_dim;
+
 #ifdef SANITY
     min_dim = 2;
     max_dim = 4;
@@ -21,7 +21,7 @@ int main(){
     min_dim = 64;
 #endif
 
-    m = n = k = max_dim;
+    m = n = k = lda = ldb = ldc = max_dim;
 
     std::vector<double> A(m*k);
     std::vector<double> B(k*n);
@@ -39,52 +39,53 @@ int main(){
         for ( j = min_dim; j <= max_dim; j = 2*j ){
             for ( p = min_dim; p <= max_dim; p = 2*p ){    
 
-                // initialize matrices
+                // initialize A and B matrices
 #ifdef SANITY
-                init_sanity_matrices(&A[0], k, &B[0], n, i, p, j);
+                init_sanity_matrices(&A[0], k, &B[0], lda, i, p, j);
 #else
-                init_test1_matrices(&A[0], k, &B[0], n, i, p, j);
+                init_test1_matrices(&A[0], k, &B[0], lda, i, p, j);
 #endif
-                init_zero_matrix(&C[0], n, i, j);
-                copy_matrix(&Aq[0], k, &A[0], k, i, p, false);
-                copy_matrix(&Bq[0], n, &B[0], n, p, j, false);
-                init_zero_matrix(&Cq[0], n, i, j);
+                copy_matrix(&Aq[0], lda, &A[0], lda, i, p);
+                copy_matrix(&Bq[0], ldb, &B[0], ldb, p, j);
             
 #ifdef SANITY
                 printf("A:\n");
-                print_matrix_to_stdout(&A[0], k, i, p, false);
+                print_matrix_to_stdout(&A[0], lda, i, p);
                 printf("B:\n");
-                print_matrix_to_stdout(&B[0], n, p, j, false);
+                print_matrix_to_stdout(&B[0], ldb, p, j);
 #endif
 
                 // run reference gemm in high precision
-                reference_gemm(&Aq[0], k, &Bq[0], n, i, p, j, &Cq[0], n);
+                init_zero_matrix(&Cq[0], n, i, j);
+                reference_gemm(&Aq[0], lda, &Bq[0], ldb, i, p, j, &Cq[0], ldc);
                 
                 // run reference gemm and calculate errors
-                reference_gemm(&A[0], k, &B[0], n, i, p, j, &C[0], n);
-                copy_matrix(&high_prec_buffer[0], n, &C[0], n, i, j, false);
-                get_elementwise_errors(&Cq[0], n, &high_prec_buffer[0], n, i, j, &errors[0], n);
-                copy_matrix(&low_prec_buffer[0], n, &errors[0], n, i, j, false);
-                write_matrix_bytes_to_file(outfile1, &low_prec_buffer[0], n, i, j);
-
-                // run blis gemm and calculate errors
-                char transpose = 'T';
-                double alpha = 1.0;
-                double beta = 0.0;
-                int32_t ii = i;
-                int32_t jj = j;
-                int32_t pp = p;
-                int32_t mm = m;
-                int32_t kk = k;
-                dgemm_(&transpose, &transpose, &ii, &jj, &pp, &alpha, &A[0], &mm, &B[0], &kk, &beta, &C[0], &mm);
-                copy_matrix(&high_prec_buffer[0], n, &C[0], n, i, j, true);
-                get_elementwise_errors(&Cq[0], n, &high_prec_buffer[0], n, i, j, &errors[0], n);
-                copy_matrix(&low_prec_buffer[0], n, &errors[0], n, i, j, false);
-                write_matrix_bytes_to_file(outfile2, &low_prec_buffer[0], n, i, j);
+                init_zero_matrix(&C[0], n, i, j);
+                reference_gemm(&A[0], lda, &B[0], ldb, i, p, j, &C[0], ldc);
+                copy_matrix(&high_prec_buffer[0], ldc, &C[0], ldc, i, j);
+                get_elementwise_errors(&Cq[0], ldc, &high_prec_buffer[0], ldc, i, j, &errors[0], ldc);
+                copy_matrix(&low_prec_buffer[0], ldc, &errors[0], ldc, i, j);
+                write_matrix_bytes_to_file(outfile1, &low_prec_buffer[0], ldc, i, j);
 
 #ifdef SANITY
-                printf("C:\n");
-                print_matrix_to_stdout(&C[0], n, i, j, true);
+                printf("C (reference):\n");
+                print_matrix_to_stdout(&C[0], ldc, i, j);
+#endif
+
+                // run blis gemm and calculate errors
+                char transpose = 'N';
+                double alpha = 1.0;
+                double beta = 0.0;
+                init_zero_matrix(&C[0], n, i, j);
+                dgemm_(&transpose, &transpose, &i, &j, &p, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
+                copy_matrix(&high_prec_buffer[0], ldc, &C[0], ldc, i, j);
+                get_elementwise_errors(&Cq[0], ldc, &high_prec_buffer[0], ldc, i, j, &errors[0], ldc);
+                copy_matrix(&low_prec_buffer[0], ldc, &errors[0], ldc, i, j);
+                write_matrix_bytes_to_file(outfile2, &low_prec_buffer[0], ldc, i, j);
+
+#ifdef SANITY
+                printf("C (blis):\n");
+                print_matrix_to_stdout(&C[0], ldc, i, j);
 #endif
             }    
         }    

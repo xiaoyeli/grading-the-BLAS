@@ -6,16 +6,16 @@
 #include <fstream>
 
 template <typename T>
-void write_matrix_bytes_to_file( std::ofstream& outfile, T *A, const uint32_t lda, const uint32_t m, const uint32_t n ){
-    uint32_t i;
-    for ( i = 0; i < m; ++i ){
-        outfile.write(reinterpret_cast<char*>(&A[i*lda]), sizeof(T) * n);
+void write_matrix_bytes_to_file( std::ofstream& outfile, T *A, const int32_t lda, const int32_t m, const int32_t n ){
+    int32_t i;
+    for ( i = 0; i < n; ++i ){
+        outfile.write(reinterpret_cast<char*>(&A[i*lda]), sizeof(T) * m);
     }
     return;
 }
 
 template <typename T>
-void read_matrix_bytes_from_file( std::string filename, T *A, const uint32_t m, const uint32_t n ){
+void read_matrix_bytes_from_file( const std::string filename, const T *A, const int32_t m, const int32_t n ){
     std::ifstream infile(filename, std::ios::binary);
     infile.read(reinterpret_cast<char*>(A), sizeof(T) * m * n);
     infile.close();
@@ -23,12 +23,12 @@ void read_matrix_bytes_from_file( std::string filename, T *A, const uint32_t m, 
 }
 
 template <typename T>
-void print_matrix_bytes_to_stdout( T *A, const uint32_t lda, const uint32_t m, const uint32_t n ){
-    uint32_t i, j;
+void print_matrix_bytes_to_stdout( const T *A, const int32_t lda, const int32_t m, const int32_t n ){
+    int32_t i, j;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            printf("%a\n", A[i*lda+j]);
+            printf("%a\n", A[i+j*lda]);
         }
     }
     
@@ -36,39 +36,28 @@ void print_matrix_bytes_to_stdout( T *A, const uint32_t lda, const uint32_t m, c
 }
 
 template <typename T>
-void print_matrix_to_stdout( T *A, const uint32_t lda, const uint32_t m, const uint32_t n, bool transpose ){
-    uint32_t i, j;
+void print_matrix_to_stdout( const T *A, const int32_t lda, const int32_t m, const int32_t n ){
+    int32_t i, j;
 
-    if ( transpose ){
-        for ( i = 0; i < m; ++i ){
-            for ( j = 0; j < n; ++j ){
-                printf("%f ", A[j*lda+i]);
-            }
-            printf("\n");
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < n; ++j ){
+            printf("%f ", A[i+j*lda]);
         }
         printf("\n");
     }
-    else{
-        for ( i = 0; i < m; ++i ){
-            for ( j = 0; j < n; ++j ){
-                printf("%f ", A[i*lda+j]);
-            }
-            printf("\n");
-        }
-        printf("\n");
-    }
+    printf("\n");
     
     return;
 }
 
-void print_matrix_128( __float128 *A, const uint32_t lda, const uint32_t m, const uint32_t n ){
-    uint32_t i, j;
+void print_matrix_128( const __float128 *A, const int32_t lda, const int32_t m, const int32_t n ){
+    int32_t i, j;
     char buf[10];
     int width = 46;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            quadmath_snprintf(buf, sizeof(buf), "%+-#*.2Qe", width, A[i*lda+j]);
+            quadmath_snprintf(buf, sizeof(buf), "%+-#*.2Qe", width, A[i+j*lda]);
             printf("%s ", buf);
         }
         printf("\n");
@@ -79,12 +68,12 @@ void print_matrix_128( __float128 *A, const uint32_t lda, const uint32_t m, cons
 }
 
 template <typename T>
-void get_elementwise_abs_errors( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t n, T *C, const uint32_t ldc ){
-    uint32_t i, j;
+void get_elementwise_abs_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
+    int32_t i, j;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            C[i*ldc + j] = fabs(B[i*ldb + j] - A[i*lda + j]);
+            C[i + j*ldc] = fabs(B[i + j*ldb] - A[i + j*lda]);
         }
     }
 
@@ -92,12 +81,12 @@ void get_elementwise_abs_errors( T *A, const uint32_t lda, T *B, const uint32_t 
 }
 
 template <typename T>
-void get_elementwise_errors( T *A, const uint32_t lda, T *B, const uint32_t ldb, const uint32_t m, const uint32_t n, T *C, const uint32_t ldc ){
-    uint32_t i, j;
+void get_elementwise_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
+    int32_t i, j;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            C[i*ldc + j] = B[i*ldb + j] - A[i*lda + j];
+            C[i + j*ldc] = B[i + j*ldb] - A[i + j*lda];
         }
     }
 
@@ -106,22 +95,12 @@ void get_elementwise_errors( T *A, const uint32_t lda, T *B, const uint32_t ldb,
 
 
 template <typename T_to, typename T_from>
-void copy_matrix( T_to *A, const uint32_t lda, T_from *B, const uint32_t ldb, const uint32_t m, uint32_t n, bool transpose ){
+void copy_matrix( T_to *A, const int32_t lda, const T_from *B, const int32_t ldb, const int32_t m, const int32_t n ){
     
-    uint32_t i, j;
-
-    if ( transpose ){
-        for ( i = 0; i < m; ++i ){
-            for ( j = 0; j < n; ++j ){
-                A[i*lda + j] = B[j*ldb + i];
-            }
-        }
-    }
-    else{
-        for ( i = 0; i < m; ++i ){
-            for ( j = 0; j < n; ++j ){
-                A[i*lda + j] = B[i*ldb + j];
-            }
+    int32_t i, j;
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < n; ++j ){
+            A[i + j*lda] = B[i + j*ldb];
         }
     }
 
