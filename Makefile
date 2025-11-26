@@ -10,6 +10,8 @@ endif
 # directories
 SRC_DIR := src
 OBJ_DIR := obj
+RESULTS_DIRS := results/U_0_1 results/U_-1_1 results/test1
+
 BIN := main
 
 # Source and object files
@@ -23,6 +25,7 @@ all: $(BIN)
 # Linking
 $(BIN): $(OBJS)
 	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
+	mkdir -p $(RESULTS_DIRS)
 
 # Compilation
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)

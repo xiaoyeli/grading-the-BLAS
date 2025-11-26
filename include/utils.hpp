@@ -68,29 +68,40 @@ void print_matrix_128( const __float128 *A, const int32_t lda, const int32_t m, 
 }
 
 template <typename T>
-void get_elementwise_abs_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
+double get_componentwise_abs_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
     int32_t i, j;
+    double abs_error;
+    double max_abs_error = 0.0;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
             C[i + j*ldc] = fabs(B[i + j*ldb] - A[i + j*lda]);
+            if (C[i + j*ldc] > max_abs_error) {
+                max_abs_error = C[i + j*ldc];
+            }
         }
     }
 
-    return;
+    return max_abs_error;
 }
 
 template <typename T>
-void get_elementwise_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
+double get_componentwise_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
     int32_t i, j;
+    double abs_error;
+    double max_abs_error = 0.0;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
             C[i + j*ldc] = B[i + j*ldb] - A[i + j*lda];
+            abs_error = fabs(C[i + j*ldc]);
+            if (abs_error > max_abs_error) {
+                max_abs_error = abs_error;
+            }
         }
     }
 
-    return;
+    return max_abs_error;
 }
 
 

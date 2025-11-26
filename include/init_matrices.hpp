@@ -43,15 +43,38 @@ void init_sanity_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, con
 }
 
 template <typename T>
-void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
-
+void init_random_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n, const T lower_bound, const T upper_bound ){
+    
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_real_distribution<T> generator(0.0d, 1.0d);
+    std::uniform_real_distribution<T> generator(lower_bound, upper_bound);
+    int32_t i, j;
 
+    // initialize matrices
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < k; ++j ){
+            A[i + j*lda] = generator(rd);
+        }
+    }
+
+    for ( i = 0; i < k; ++i ){
+        for ( j = 0; j < n; ++j ){
+            B[i + j*ldb] = generator(rd);
+        }
+    }  
+
+    return;
+}
+
+template <typename T>
+void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
+
+    init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(0.0), static_cast<T>(1.0) );
     int32_t i, j;
 
     // figure out which rows/columns to zero
+    std::random_device rd;
+    std::mt19937 gen(rd());
     std::vector<bool> zero_rows_A(m);
     std::vector<bool> zero_cols_B(n);
     int32_t n_zero;
@@ -75,14 +98,11 @@ void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, cons
     std::shuffle(zero_rows_A.begin(), zero_rows_A.end(), rd);
     std::shuffle(zero_cols_B.begin(), zero_cols_B.end(), rd);
 
-    // initialize matrices
+    // zero selected rows/columns
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < k; ++j ){
             if ( zero_rows_A[i] ){
                 A[i + j*lda] = 0.0;
-            }
-            else{
-                A[i + j*lda] = generator(rd);
             }
         }
     }
@@ -92,11 +112,27 @@ void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, cons
             if ( zero_cols_B[j] ){
                 B[i + j*ldb] = 0.0;
             }
-            else{
-                B[i + j*ldb] = generator(rd);
-            }
         }
     }  
+
+    return;
+}
+
+template <typename T>
+void init_matrices( std::string type, T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
+    if ( type == "U_0_1" ){
+        init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(0.0), static_cast<T>(1.0) );
+    }
+    if ( type == "U_-1_1" ){
+        init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(-1.0), static_cast<T>(1.0) );
+    }
+    else if ( type == "test1" ){
+        init_test1_matrices( A, lda, B, ldb, m, k, n );
+    }
+    else{
+        // default to U(0,1)
+        init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(0.0), static_cast<T>(1.0) );
+    }
 
     return;
 }
