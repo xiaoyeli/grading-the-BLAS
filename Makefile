@@ -20,7 +20,7 @@ OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
 DEPS := $(OBJS:.o=.d)
 
 # Default target
-all: $(BIN)
+all: $(BIN) $(RESULTS_DIRS)
 
 # Linking
 $(BIN): $(OBJS)
@@ -34,6 +34,10 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
 # Ensure obj/ exists
 $(OBJ_DIR):
 	mkdir -p $(OBJ_DIR)
+
+# Ensure results/ and subdirectories exist
+$(RESULTS_DIRS):
+	mkdir -p $@
 
 # Clean up
 clean:
