@@ -96,7 +96,7 @@ int main(){
                 copy_matrix(&high_prec_buffer[0], ldc, &C[0], ldc, i, j);
                 get_elementwise_errors(&Cq[0], ldc, &high_prec_buffer[0], ldc, i, j, &errors[0], ldc);
                 copy_matrix(&low_prec_buffer[0], ldc, &errors[0], ldc, i, j);
-                write_matrix_bytes_to_file(outfile1, &low_prec_buffer[0], ldc, i, j);
+                write_matrix_bytes_to_file(outfile3, &low_prec_buffer[0], ldc, i, j);
 #else
                 printf("C (strassen):\n");
                 print_matrix_to_stdout(&C[0], ldc, i, j);
