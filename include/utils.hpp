@@ -2,7 +2,6 @@
 #define UTILS_HPP
 
 #include <stdint.h>
-#include <quadmath.h>
 #include <fstream>
 
 template <typename T>
@@ -42,23 +41,6 @@ void print_matrix_to_stdout( const T *A, const int32_t lda, const int32_t m, con
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
             printf("%f ", A[i+j*lda]);
-        }
-        printf("\n");
-    }
-    printf("\n");
-    
-    return;
-}
-
-void print_matrix_128( const __float128 *A, const int32_t lda, const int32_t m, const int32_t n ){
-    int32_t i, j;
-    char buf[10];
-    int width = 46;
-
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
-            quadmath_snprintf(buf, sizeof(buf), "%+-#*.2Qe", width, A[i+j*lda]);
-            printf("%s ", buf);
         }
         printf("\n");
     }
