@@ -1,6 +1,6 @@
 CXX := g++
-CXXFLAGS := -O0 -std=c++17 -Wall -Wextra -Wno-unused-parameter -Iinclude -Isubmodules/blis-2.0/include/sandybridge -MMD -MP
-LDFLAGS := -Lsubmodules/blis-2.0/lib/sandybridge/ -lblis
+CXXFLAGS := -O0 -std=c++17 -Wall -Wextra -Wno-unused-parameter -Iinclude -MMD -MP
+LDFLAGS := -ldl
 CPPFLAGS ?=
 
 ifeq ($(SANITY),1)
