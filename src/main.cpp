@@ -137,7 +137,7 @@ int main(){
 
         // run blis gemm
         init_zero_matrix(&C[0], n, dim, dim);
-        dgemm_(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
+        dgemm_blis(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
         printf("C (blis):\n");
         print_matrix_to_stdout(&C[0], ldc, dim, dim);
 
