@@ -2,6 +2,7 @@
 #include "utils.hpp"
 #include "reference_gemm.hpp"
 #include "strassen_gemm.hpp"
+#include "cublas_gemm_wrapper.hpp"
 #include <stdio.h>
 #include <stdint.h>
 #include <fstream>
@@ -70,6 +71,10 @@ int main(){
         std::ofstream strassen_out_txt("results/" + matrix_type + "/max_componentwise_errors.strassen.txt");
         strassen_out_txt << "m,n,k,max_componentwise_error" << std::endl;
 
+        std::ofstream ozimmu_out_bin("results/" + matrix_type + "/all_componentwise_errors.ozimmu.bin", std::ios::binary);
+        std::ofstream ozimmu_out_txt("results/" + matrix_type + "/max_componentwise_errors.ozimmu.txt");
+        ozimmu_out_txt << "m,n,k,max_componentwise_error" << std::endl;
+
         for ( dim = min_dim; dim <= max_dim; dim = 2*dim ){
 
             // initialize A and B matrices
@@ -100,14 +105,19 @@ int main(){
             write_matrix_bytes_to_file(openblas_out_bin, &errors[0], ldc, dim, dim);
             openblas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_error << std::endl;
 
-            // run strassen gemm
+            // run strassen gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             strassen_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-
-            // calculate and write errors to file
             max_componentwise_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
             write_matrix_bytes_to_file(strassen_out_bin, &errors[0], ldc, dim, dim);
             strassen_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_error << std::endl;
+
+            // run ozimmu gemm and calculate errors
+            init_zero_matrix(&C[0], n, dim, dim);
+            cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
+            max_componentwise_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            write_matrix_bytes_to_file(ozimmu_out_bin, &errors[0], ldc, dim, dim);
+            ozimmu_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_error << std::endl;
         }
         netlibblas_out_bin.close();
         netlibblas_out_txt.close();
@@ -117,6 +127,8 @@ int main(){
         openblas_out_txt.close();
         strassen_out_bin.close();
         strassen_out_txt.close();
+        ozimmu_out_bin.close();
+        ozimmu_out_txt.close();
     }
 
 #else
@@ -135,16 +147,34 @@ int main(){
         printf("C (reference):\n");
         print_matrix_to_stdout(&C[0], ldc, dim, dim);
 
+        // run netlibblas gemm
+        init_zero_matrix(&C[0], n, dim, dim);
+        dgemm_netlibblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
+        printf("C (netlibblas):\n");
+        print_matrix_to_stdout(&C[0], ldc, dim, dim);
+
         // run blis gemm
         init_zero_matrix(&C[0], n, dim, dim);
         dgemm_blis(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
         printf("C (blis):\n");
         print_matrix_to_stdout(&C[0], ldc, dim, dim);
 
+        // run openblas gemm
+        init_zero_matrix(&C[0], n, dim, dim);
+        dgemm_openblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
+        printf("C (openblas):\n");
+        print_matrix_to_stdout(&C[0], ldc, dim, dim);
+
         // run strassen gemm
         init_zero_matrix(&C[0], n, dim, dim);
         strassen_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
         printf("C (strassen):\n");
+        print_matrix_to_stdout(&C[0], ldc, dim, dim);
+
+        // run ozimmu gemm
+        init_zero_matrix(&C[0], n, dim, dim);
+        cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
+        printf("C (ozIMMU):\n");
         print_matrix_to_stdout(&C[0], ldc, dim, dim);
     }
 

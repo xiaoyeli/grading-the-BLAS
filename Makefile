@@ -1,6 +1,6 @@
-CXX := g++
-CXXFLAGS := -O0 -std=c++17 -Wall -Wextra -Wno-unused-parameter -Iinclude -MMD -MP
-LDFLAGS := -ldl
+CXX := nvcc
+CXXFLAGS := -O0 -std=c++17 -Iinclude -MMD -MP
+LDFLAGS := -ldl -lcublas
 CPPFLAGS ?=
 
 ifeq ($(SANITY),1)
