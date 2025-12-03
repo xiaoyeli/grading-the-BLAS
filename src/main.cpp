@@ -1,16 +1,46 @@
 #include "init_matrices.hpp"
 #include "utils.hpp"
 #include "reference_gemm.hpp"
-#include "strassen_gemm.hpp"
 #include "cublas_gemm_wrapper.hpp"
 #include <stdio.h>
 #include <stdint.h>
 #include <fstream>
 #include <vector>
-#include <dlfcn.h>
 
-typedef void (*dgemm_t)(char*, char*, int32_t*, int32_t*, int32_t*,
-                        double*, double*, int32_t*, double*, int32_t*, double*, double*, int32_t*);
+extern "C" {
+    void dgemm_(const char* TRANSA, const char* TRANSB,
+                const int* M, const int* N, const int* K,
+                const double* ALPHA,
+                const double* A, const int* LDA,
+                const double* B, const int* LDB,
+                const double* BETA,
+                double* C, const int* LDC);
+}
+
+#ifdef USE_NETLIBBLAS
+#define LIB_NAME "netlibblas"
+#endif
+
+#ifdef USE_BLIS
+#include <blis.h>
+#define LIB_NAME "blis"
+#endif
+
+#ifdef USE_OPENBLAS
+#define LIB_NAME "openblas"
+#endif
+
+#ifdef USE_STRASSEN
+#define LIB_NAME "strassen"
+#endif
+
+#ifdef USE_CUBLAS
+#define LIB_NAME "cublas"
+#endif
+
+#ifdef USE_OZIMMU
+#define LIB_NAME "ozimmu"
+#endif
 
 int main(){
     int32_t m, k, n, lda, ldb, ldc;
@@ -20,196 +50,86 @@ int main(){
     char transpose = 'N';
     double alpha = 1.0;
     double beta = 0.0;
-    
-    void *handle_netlibblas, *handle_blis, *handle_openblas;
-    dgemm_t dgemm_netlibblas, dgemm_blis, dgemm_openblas;
 
-    handle_netlibblas = dlopen("librefblas.so", RTLD_LAZY);
-    dgemm_netlibblas = (dgemm_t)dlsym(handle_netlibblas, "dgemm_");
-
-    handle_blis = dlopen("libblis.so", RTLD_LAZY);
-    dgemm_blis = (dgemm_t)dlsym(handle_blis, "dgemm_");
-
-    handle_openblas = dlopen("libopenblas.so", RTLD_LAZY);
-    dgemm_openblas = (dgemm_t)dlsym(handle_openblas, "dgemm_");
-
-#ifndef SANITY
-    max_dim = 64;
-    min_dim = 32;
+#ifdef SANITY
+    min_dim = max_dim = 4;
 #else
-    min_dim = 2;
-    max_dim = 4;
+    max_dim = 8192;
+    min_dim = 32;
 #endif
-
     m = n = k = lda = ldb = ldc = max_dim;
 
     std::vector<double> A(m*k);
     std::vector<double> B(k*n);
     std::vector<double> C(m*n);
 
-#ifndef SANITY
     double max_componentwise_abs_error;
     std::vector<double> C_ref(m*n);
     std::vector<double> errors(m*n);
 
     std::vector<std::string> matrix_types;
+#ifdef SANITY
+    matrix_types.push_back("sanity");
+#else
     matrix_types.push_back("test1");
-    // matrix_types.push_back("test3");
-    // matrix_types.push_back("U_0_1");
-    // matrix_types.push_back("U_-1_1");
-
+    matrix_types.push_back("test3");
+    matrix_types.push_back("U_0_1");
+    matrix_types.push_back("U_-1_1");
+#endif
     for ( const auto& matrix_type : matrix_types ){
 
-        std::ofstream netlibblas_out_bin("results/" + matrix_type + "/all_componentwise_errors.netlibblas.bin", std::ios::binary);
-        std::ofstream netlibblas_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.netlibblas.txt");
-        netlibblas_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
-
-        std::ofstream blis_out_bin("results/" + matrix_type + "/all_componentwise_errors.blis.bin", std::ios::binary);
-        std::ofstream blis_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.blis.txt");
-        blis_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
-
-        std::ofstream openblas_out_bin("results/" + matrix_type + "/all_componentwise_errors.openblas.bin", std::ios::binary);
-        std::ofstream openblas_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.openblas.txt");
-        openblas_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
-
-        std::ofstream strassen_out_bin("results/" + matrix_type + "/all_componentwise_errors.strassen.bin", std::ios::binary);
-        std::ofstream strassen_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.strassen.txt");
-        strassen_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
-
-        std::ofstream cublas_out_bin("results/" + matrix_type + "/all_componentwise_errors.cublas.bin", std::ios::binary);
-        std::ofstream cublas_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.cublas.txt");
-        cublas_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
-
-#ifdef USE_OZIMMU
-        std::ofstream ozimmu_out_bin("results/" + matrix_type + "/all_componentwise_errors.ozimmu.bin", std::ios::binary);
-        std::ofstream ozimmu_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.ozimmu.txt");
-        ozimmu_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
+#ifndef LIB_NAME
+        std::ofstream out_bin("results/" + matrix_type + "/reference_values.bin", std::ios::binary);
+#else
+        std::ifstream in_bin("results/" + matrix_type + "/reference_values.bin", std::ios::binary);
+        std::ofstream out_bin("results/" + matrix_type + "/all_componentwise_errors." + LIB_NAME + ".bin", std::ios::binary);
+        std::ofstream out_txt("results/" + matrix_type + "/max_componentwise_abs_errors." + LIB_NAME + ".txt");
+        out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
 #endif
         for ( dim = min_dim; dim <= max_dim; dim = 2*dim ){
 
             // initialize A and B matrices
             init_matrices(matrix_type, &A[0], k, &B[0], lda, dim, dim, dim);
-
-            // run reference gemm
+#ifdef VERBOSE
+            printf("A matrix:\n");
+            print_matrix_to_stdout(&A[0], lda, dim, dim);
+            printf("B matrix:\n");
+            print_matrix_to_stdout(&B[0], ldb, dim, dim);
+#endif
+            // get reference values, either calculating them or reading them from file
+#ifndef LIB_NAME
             init_zero_matrix(&C_ref[0], n, dim, dim);
             reference_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C_ref[0], ldc);
-
-            // run netlibblas gemm and calculate errors
+            write_matrix_bytes_to_file(out_bin, &C_ref[0], ldc, dim, dim);
+#else
+            read_matrix_bytes_from_file(in_bin, &C_ref[0], ldc, dim, dim);
+#ifdef VERBOSE
+            printf("C reference matrix:\n");
+            print_matrix_to_stdout(&C_ref[0], ldc, dim, dim);
+#endif
+            // call DGEMM for the library under test
             init_zero_matrix(&C[0], n, dim, dim);
-            dgemm_netlibblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
-            write_matrix_bytes_to_file(netlibblas_out_bin, &errors[0], ldc, dim, dim);
-            netlibblas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
-
-            // run blis gemm and calculate errors
-            init_zero_matrix(&C[0], n, dim, dim);
-            dgemm_blis(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
-            write_matrix_bytes_to_file(blis_out_bin, &errors[0], ldc, dim, dim);
-            blis_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
-
-            // run openblas gemm and calculate errors
-            init_zero_matrix(&C[0], n, dim, dim);
-            dgemm_openblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
-            write_matrix_bytes_to_file(openblas_out_bin, &errors[0], ldc, dim, dim);
-            openblas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
-
-            // run strassen gemm and calculate errors
-            init_zero_matrix(&C[0], n, dim, dim);
-            strassen_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
-            write_matrix_bytes_to_file(strassen_out_bin, &errors[0], ldc, dim, dim);
-            strassen_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
-
-            // run cublas gemm and calculate errors
-            init_zero_matrix(&C[0], n, dim, dim);
+#ifdef CUDA
             cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
+#else
+            dgemm_(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
+#endif
+#ifdef VERBOSE
+            printf("C matrix:\n");
+            print_matrix_to_stdout(&C[0], ldc, dim, dim);
+#endif
+            // calculate and save errors
             postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
-            write_matrix_bytes_to_file(cublas_out_bin, &errors[0], ldc, dim, dim);
-            cublas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
-
-#ifdef USE_OZIMMU
-            // run ozimmu gemm and calculate errors
-            init_zero_matrix(&C[0], n, dim, dim);
-            cublas_ozimmu_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
-            write_matrix_bytes_to_file(ozimmu_out_bin, &errors[0], ldc, dim, dim);
-            ozimmu_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
+            write_matrix_bytes_to_file(out_bin, &errors[0], ldc, dim, dim);
+            out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
 #endif
         }
-        netlibblas_out_bin.close();
-        netlibblas_out_txt.close();
-        blis_out_bin.close();
-        blis_out_txt.close();
-        openblas_out_bin.close();
-        openblas_out_txt.close();
-        strassen_out_bin.close();
-        strassen_out_txt.close();
-        cublas_out_bin.close();
-        cublas_out_txt.close();
-#ifdef USE_OZIMMU
-        ozimmu_out_bin.close();
-        ozimmu_out_txt.close();
+        out_bin.close();
+#ifdef LIB_NAME
+        in_bin.close();
+        out_txt.close();
 #endif
     }
-
-#else
-    for ( dim = min_dim; dim <= max_dim; dim = 2*dim ){
-
-        // initialize A and B matrices
-        init_sanity_matrices(&A[0], k, &B[0], lda, dim, dim, dim);
-        printf("A:\n");
-        print_matrix_to_stdout(&A[0], lda, dim, dim);
-        printf("B:\n");
-        print_matrix_to_stdout(&B[0], ldb, dim, dim);
-
-        // run reference gemm
-        init_zero_matrix(&C[0], n, dim, dim);
-        reference_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-        printf("C (reference):\n");
-        print_matrix_to_stdout(&C[0], ldc, dim, dim);
-
-        // run netlibblas gemm
-        init_zero_matrix(&C[0], n, dim, dim);
-        dgemm_netlibblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-        printf("C (netlibblas):\n");
-        print_matrix_to_stdout(&C[0], ldc, dim, dim);
-
-        // run blis gemm
-        init_zero_matrix(&C[0], n, dim, dim);
-        dgemm_blis(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-        printf("C (blis):\n");
-        print_matrix_to_stdout(&C[0], ldc, dim, dim);
-
-        // run openblas gemm
-        init_zero_matrix(&C[0], n, dim, dim);
-        dgemm_openblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-        printf("C (openblas):\n");
-        print_matrix_to_stdout(&C[0], ldc, dim, dim);
-
-        // run strassen gemm
-        init_zero_matrix(&C[0], n, dim, dim);
-        strassen_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-        printf("C (strassen):\n");
-        print_matrix_to_stdout(&C[0], ldc, dim, dim);
-
-        // run cublas gemm
-        init_zero_matrix(&C[0], n, dim, dim);
-        cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-        printf("C (cublas):\n");
-        print_matrix_to_stdout(&C[0], ldc, dim, dim);
-
-#ifdef USE_OZIMMU
-        // run ozimmu gemm
-        init_zero_matrix(&C[0], n, dim, dim);
-        cublas_ozimmu_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-        printf("C (ozIMMU):\n");
-        print_matrix_to_stdout(&C[0], ldc, dim, dim);
-#endif
-    }
-
-#endif
 
     return 0;
 }

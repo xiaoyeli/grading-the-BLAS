@@ -46,21 +46,20 @@ void init_sanity_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, con
 template <typename T>
 void init_random_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n, const T lower_bound, const T upper_bound ){
     
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(0);
     std::uniform_real_distribution<T> generator(lower_bound, upper_bound);
     int32_t i, j;
 
     // initialize matrices
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < k; ++j ){
-            A[i + j*lda] = generator(rd);
+            A[i + j*lda] = generator(gen);
         }
     }
 
     for ( i = 0; i < k; ++i ){
         for ( j = 0; j < n; ++j ){
-            B[i + j*ldb] = generator(rd);
+            B[i + j*ldb] = generator(gen);
         }
     }  
 
@@ -74,8 +73,7 @@ void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, cons
     int32_t i, j;
 
     // figure out which rows/columns to zero
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(0);
     std::vector<bool> zero_rows_A(m);
     std::vector<bool> zero_cols_B(n);
     int32_t n_zero;
@@ -96,8 +94,8 @@ void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, cons
         zero_cols_B[i] = false;
     }
 
-    std::shuffle(zero_rows_A.begin(), zero_rows_A.end(), rd);
-    std::shuffle(zero_cols_B.begin(), zero_cols_B.end(), rd);
+    std::shuffle(zero_rows_A.begin(), zero_rows_A.end(), gen);
+    std::shuffle(zero_cols_B.begin(), zero_cols_B.end(), gen);
 
     // zero selected rows/columns
     for ( i = 0; i < m; ++i ){
@@ -126,14 +124,13 @@ void init_test3_matrices_fp64( double *A, const int32_t lda, double *B, const in
     int32_t min_exponent = -1000;
     std::vector<double> x(dim);
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    std::mt19937 gen(0);
     std::uniform_real_distribution<double> generator(1.0, 2.0);
     std::vector<double> diag_D(dim);
     std::vector<double> diag_D_inv(dim);
 
     for ( i = 0; i < dim; ++i ){
-        x[i] = generator(rd);
+        x[i] = generator(gen);
     }
 
     for ( i = 0; i < dim; ++i ){
@@ -169,6 +166,9 @@ void init_matrices( std::string type, T *A, const int32_t lda, T *B, const int32
         static_assert( std::is_same<T, double>::value, "test3 matrices are only implemented for double precision." );
         assert( m == n && n == k && "test3 matrices are only implemented for square matrices.");
         init_test3_matrices_fp64( A, lda, B, ldb, m );
+    }
+    else if ( type == "sanity" ){
+        init_sanity_matrices( A, lda, B, ldb, m, k, n );
     }
     else{
         // default to U(0,1)

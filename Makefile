@@ -1,53 +1,105 @@
-CXX := nvcc
-CXXFLAGS := -O0 -std=c++17 -Iinclude -MMD -MP
-LDFLAGS := -ldl -lcublas
-CPPFLAGS ?=
+#############################
+# User Options
+#############################
 
-ifeq ($(SANITY),1)
-CPPFLAGS += -DSANITY
-endif
+DGEMM_IMPLEMENTATIONS := REFERENCE NETLIBBLAS BLIS OPENBLAS STRASSEN CUBLAS OZIMMU
+DGEMM_IMPL ?= REFERENCE
 
-ifneq ($(USE_OZIMMU),0)
-CPPFLAGS += -DUSE_OZIMMU
-endif
-
-# directories
+# Directories
 SRC_DIR := src
-OBJ_DIR := obj
-RESULTS_DIRS := results/U_0_1 results/U_-1_1 results/test1 results/test3
+INC_DIR := include
+LIB_DIR := lib
+RESULTS_DIRS := results/U_0_1 results/U_-1_1 results/test1 results/test3 results/sanity
 
-BIN := main
+# Flags
+CXXFLAGS := -O0 -I$(INC_DIR)
 
-# Source and object files
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-OBJS := $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(SRCS))
-DEPS := $(OBJS:.o=.d)
+# Compiler
+ifneq ($(filter $(DGEMM_IMPL), OZIMMU CUBLAS),)
+	CXX := nvcc
+else
+	CXX := g++
+endif
 
-# Default target
-all: $(BIN) $(RESULTS_DIRS)
+# Sanity/Verbosity
+ifeq ($(SANITY),1)
+	CXXFLAGS += -DSANITY -DVERBOSE
+else ifeq ($(VERBOSE),1)
+	CXXFLAGS += -DVERBOSE
+endif
 
-# Linking
-$(BIN): $(OBJS)
-	$(CXX) $(OBJS) -o $@ $(LDFLAGS)
-	mkdir -p $(RESULTS_DIRS)
+# Outputs
+MAIN_EXE     := main
+STRASSEN_SO  := libstrassen_dgemm.so
 
-# Compilation
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp | $(OBJ_DIR)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -c $< -o $@
+########################################
+ifeq ($(DGEMM_IMPL),REFERENCE)
+	LDFLAGS := 
+	RUN_PREFIX :=
+endif
 
-# Ensure obj/ exists
-$(OBJ_DIR):
-	mkdir -p $(OBJ_DIR)
+ifeq ($(DGEMM_IMPL),NETLIBBLAS)
+    LDFLAGS += -lrefblas
+	CXXFLAGS += -DUSE_NETLIBBLAS
+    RUN_PREFIX :=
+endif
 
-# Ensure results/ and subdirectories exist
-$(RESULTS_DIRS):
-	mkdir -p $@
+ifeq ($(DGEMM_IMPL),BLIS)
+    LDFLAGS += -lblis
+	CXXFLAGS += -DUSE_BLIS
+    RUN_PREFIX :=
+endif
 
-# Clean up
+ifeq ($(DGEMM_IMPL),OPENBLAS)
+    LDFLAGS += -lopenblas
+	CXXFLAGS += -DUSE_OPENBLAS
+    RUN_PREFIX :=
+endif
+
+ifeq ($(DGEMM_IMPL),STRASSEN)
+    LDFLAGS += -L$(LIB_DIR) -lstrassen_dgemm
+	CXXFLAGS += -DUSE_STRASSEN
+    RUN_PREFIX := LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(LIB_DIR)
+endif
+
+ifeq ($(DGEMM_IMPL),CUBLAS)
+    LDFLAGS += -lcublas
+	CXXFLAGS += -DUSE_CUBLAS -DCUDA
+    RUN_PREFIX :=
+endif
+
+ifeq ($(DGEMM_IMPL),OZIMMU)
+    LDFLAGS := -lcublas
+	CXXFLAGS += -DUSE_OZIMMU -DCUDA
+    RUN_PREFIX := LD_PRELOAD=$(OZIMMU_SO_PATH)
+endif
+########################################
+
+all: dirs $(LIB_DIR)/$(STRASSEN_SO) $(MAIN_EXE)
+
+$(LIB_DIR)/$(STRASSEN_SO): $(SRC_DIR)/strassen_dgemm.cpp
+	g++ -O0 -fPIC -shared -Iinclude $< -o $@
+
+$(MAIN_EXE): $(SRC_DIR)/main.cpp
+	$(CXX) $(CXXFLAGS) $< $(LDFLAGS) -o $@
+
+dirs:
+	@mkdir -p $(RESULTS_DIRS) $(LIB_DIR)
+
+run: all
+	$(RUN_PREFIX) ./$(MAIN_EXE)
+
+run_all:
+	@for implementation in $(DGEMM_IMPLEMENTATIONS); do \
+		echo ""; \
+		echo "=== Building and running $$implementation ==="; \
+		$(MAKE) $(MAKEFLAGS) DGEMM_IMPL=$$implementation run; \
+	done
+
+###########################################
+# Cleanup
+###########################################
 clean:
-	rm -rf $(OBJ_DIR) $(BIN)
+	rm -rf $(MAIN_EXE) $(LIB_DIR)
 
-.PHONY: all clean
-
-# Include dependency files so .hpp changes trigger recompilation
--include $(DEPS)
+.PHONY: all dirs clean run run_all_tests $(MAIN_EXE)

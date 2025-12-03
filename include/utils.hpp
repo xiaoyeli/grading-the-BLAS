@@ -6,18 +6,23 @@
 
 template <typename T>
 void write_matrix_bytes_to_file( std::ofstream& outfile, T *A, const int32_t lda, const int32_t m, const int32_t n ){
-    int32_t i;
-    for ( i = 0; i < n; ++i ){
-        outfile.write(reinterpret_cast<char*>(&A[i*lda]), sizeof(T) * m);
+    int32_t j;
+
+    // write out column by column
+    for ( j = 0; j < n; ++j ){
+        outfile.write( reinterpret_cast<char*>(&A[j*lda]), sizeof(T) * m );
     }
     return;
 }
 
 template <typename T>
-void read_matrix_bytes_from_file( const std::string filename, const T *A, const int32_t m, const int32_t n ){
-    std::ifstream infile(filename, std::ios::binary);
-    infile.read(reinterpret_cast<char*>(A), sizeof(T) * m * n);
-    infile.close();
+void read_matrix_bytes_from_file( std::ifstream& infile, T *A, const int32_t lda, const int32_t m, const int32_t n ){
+    int32_t j;
+
+    // read in column by column
+    for ( j = 0; j < n; ++j ){
+        infile.read( reinterpret_cast<char*>(&A[j*lda]), sizeof(T) * m );
+    }
     return;
 }
 
