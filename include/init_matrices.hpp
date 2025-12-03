@@ -122,29 +122,34 @@ void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, cons
 void init_test3_matrices_fp64( double *A, const int32_t lda, double *B, const int32_t ldb, const int32_t dim ){
 
     int32_t i, j;
-    int32_t max_exponent = 1023 - 1;
-    int32_t min_exponent = -1022 + 1;
+    int32_t max_exponent = 1000;
+    int32_t min_exponent = -1000;
     std::vector<double> x(dim);
-    std::vector<double> D(dim * dim);
 
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_real_distribution<double> generator(1.0, 2.0);
+    std::vector<double> diag_D(dim);
+    std::vector<double> diag_D_inv(dim);
 
     for ( i = 0; i < dim; ++i ){
         x[i] = generator(rd);
     }
 
     for ( i = 0; i < dim; ++i ){
+        diag_D[i] = std::ldexp(1.0, min_exponent + (i * (max_exponent - min_exponent)) / (dim - 1));
+        diag_D_inv[i] = std::ldexp(1.0, -min_exponent - (i * (max_exponent - min_exponent)) / (dim - 1));
+    }
+
+    for ( i = 0; i < dim; ++i ){
         for ( j = 0; j < dim; ++j ){
-            A[i + j*lda] = x[i];
+            A[i + j*lda] = x[j] * diag_D[j];
         }
     }
 
-    for ( j = 0; j < dim; ++j ){
-        double temp = x[j] * 1.0 / std::ldexp(1.0, min_exponent + (i * (max_exponent - min_exponent)) / (dim - 1));
-        for ( i = 0; i < dim; ++i ){
-            B[i + j*ldb] = temp;
+    for ( i = 0; i < dim; ++i ){
+        for ( j = 0; j < dim; ++j ){
+            B[i + j*ldb] = x[i] * diag_D_inv[i];
         }
     }
 }
