@@ -50,42 +50,26 @@ void print_matrix_to_stdout( const T *A, const int32_t lda, const int32_t m, con
 }
 
 template <typename T>
-double get_componentwise_abs_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
+void postprocess( const T *A_ref, const int32_t lda_ref, const T *A, const int32_t lda, const int32_t m, const int32_t n, T *errors, const int32_t lde, double *max_componentwise_abs_error, int32_t *n_zeros ){
     int32_t i, j;
     double abs_error;
-    double max_abs_error = 0.0;
 
+    *max_componentwise_abs_error = 0.0;
+    *n_zeros = 0;
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            C[i + j*ldc] = fabs(B[i + j*ldb] - A[i + j*lda]);
-            if (C[i + j*ldc] > max_abs_error) {
-                max_abs_error = C[i + j*ldc];
+            errors[i + j*lde] = A_ref[i + j*lda_ref] - A[i + j*lda];
+            abs_error = fabs(errors[i + j*lde]);
+            if (abs_error > *max_componentwise_abs_error) {
+                *max_componentwise_abs_error = abs_error;
+            }
+            if ( A[i + j*lda] == 0.0 ){
+                (*n_zeros)++;
             }
         }
     }
-
-    return max_abs_error;
+    return;
 }
-
-template <typename T>
-double get_componentwise_errors( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t n, T *C, const int32_t ldc ){
-    int32_t i, j;
-    double abs_error;
-    double max_abs_error = 0.0;
-
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
-            C[i + j*ldc] = B[i + j*ldb] - A[i + j*lda];
-            abs_error = fabs(C[i + j*ldc]);
-            if (abs_error > max_abs_error) {
-                max_abs_error = abs_error;
-            }
-        }
-    }
-
-    return max_abs_error;
-}
-
 
 template <typename T_to, typename T_from>
 void copy_matrix( T_to *A, const int32_t lda, const T_from *B, const int32_t ldb, const int32_t m, const int32_t n ){

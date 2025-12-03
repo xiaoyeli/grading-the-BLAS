@@ -15,6 +15,7 @@ typedef void (*dgemm_t)(char*, char*, int32_t*, int32_t*, int32_t*,
 int main(){
     int32_t m, k, n, lda, ldb, ldc;
     int32_t dim, min_dim, max_dim;
+    int32_t n_zeros;
 
     char transpose = 'N';
     double alpha = 1.0;
@@ -61,28 +62,28 @@ int main(){
 
         std::ofstream netlibblas_out_bin("results/" + matrix_type + "/all_componentwise_errors.netlibblas.bin", std::ios::binary);
         std::ofstream netlibblas_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.netlibblas.txt");
-        netlibblas_out_txt << "m,n,k,max_componentwise_abs_error" << std::endl;
+        netlibblas_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
 
         std::ofstream blis_out_bin("results/" + matrix_type + "/all_componentwise_errors.blis.bin", std::ios::binary);
         std::ofstream blis_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.blis.txt");
-        blis_out_txt << "m,n,k,max_componentwise_abs_error" << std::endl;
+        blis_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
 
         std::ofstream openblas_out_bin("results/" + matrix_type + "/all_componentwise_errors.openblas.bin", std::ios::binary);
         std::ofstream openblas_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.openblas.txt");
-        openblas_out_txt << "m,n,k,max_componentwise_abs_error" << std::endl;
+        openblas_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
 
         std::ofstream strassen_out_bin("results/" + matrix_type + "/all_componentwise_errors.strassen.bin", std::ios::binary);
         std::ofstream strassen_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.strassen.txt");
-        strassen_out_txt << "m,n,k,max_componentwise_abs_error" << std::endl;
+        strassen_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
 
         std::ofstream cublas_out_bin("results/" + matrix_type + "/all_componentwise_errors.cublas.bin", std::ios::binary);
         std::ofstream cublas_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.cublas.txt");
-        cublas_out_txt << "m,n,k,max_componentwise_abs_error" << std::endl;
+        cublas_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
 
 #ifdef USE_OZIMMU
         std::ofstream ozimmu_out_bin("results/" + matrix_type + "/all_componentwise_errors.ozimmu.bin", std::ios::binary);
         std::ofstream ozimmu_out_txt("results/" + matrix_type + "/max_componentwise_abs_errors.ozimmu.txt");
-        ozimmu_out_txt << "m,n,k,max_componentwise_abs_error" << std::endl;
+        ozimmu_out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
 #endif
         for ( dim = min_dim; dim <= max_dim; dim = 2*dim ){
 
@@ -96,45 +97,45 @@ int main(){
             // run netlibblas gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             dgemm_netlibblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-            max_componentwise_abs_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
             write_matrix_bytes_to_file(netlibblas_out_bin, &errors[0], ldc, dim, dim);
-            netlibblas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << std::endl;
+            netlibblas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
 
             // run blis gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             dgemm_blis(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-            max_componentwise_abs_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
             write_matrix_bytes_to_file(blis_out_bin, &errors[0], ldc, dim, dim);
-            blis_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << std::endl;
+            blis_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
 
             // run openblas gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             dgemm_openblas(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
-            max_componentwise_abs_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
             write_matrix_bytes_to_file(openblas_out_bin, &errors[0], ldc, dim, dim);
-            openblas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << std::endl;
+            openblas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
 
             // run strassen gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             strassen_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-            max_componentwise_abs_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
             write_matrix_bytes_to_file(strassen_out_bin, &errors[0], ldc, dim, dim);
-            strassen_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << std::endl;
+            strassen_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
 
             // run cublas gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-            max_componentwise_abs_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
             write_matrix_bytes_to_file(cublas_out_bin, &errors[0], ldc, dim, dim);
-            cublas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << std::endl;
+            cublas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
 
 #ifdef USE_OZIMMU
             // run ozimmu gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             cublas_ozimmu_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
-            max_componentwise_abs_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
             write_matrix_bytes_to_file(ozimmu_out_bin, &errors[0], ldc, dim, dim);
-            ozimmu_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << std::endl;
+            ozimmu_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
 #endif
         }
         netlibblas_out_bin.close();
