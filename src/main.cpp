@@ -33,7 +33,7 @@ int main(){
     dgemm_openblas = (dgemm_t)dlsym(handle_openblas, "dgemm_");
 
 #ifndef SANITY
-    max_dim = 1024;
+    max_dim = 64;
     min_dim = 32;
 #else
     min_dim = 2;
@@ -51,7 +51,11 @@ int main(){
     std::vector<double> C_ref(m*n);
     std::vector<double> errors(m*n);
 
-    std::vector<std::string> matrix_types = {"U_0_1", "U_-1_1", "test1"};
+    std::vector<std::string> matrix_types;
+    matrix_types.push_back("test1");
+    // matrix_types.push_back("test3");
+    // matrix_types.push_back("U_0_1");
+    // matrix_types.push_back("U_-1_1");
 
     for ( const auto& matrix_type : matrix_types ){
 
@@ -71,10 +75,15 @@ int main(){
         std::ofstream strassen_out_txt("results/" + matrix_type + "/max_componentwise_errors.strassen.txt");
         strassen_out_txt << "m,n,k,max_componentwise_error" << std::endl;
 
+        std::ofstream cublas_out_bin("results/" + matrix_type + "/all_componentwise_errors.cublas.bin", std::ios::binary);
+        std::ofstream cublas_out_txt("results/" + matrix_type + "/max_componentwise_errors.cublas.txt");
+        cublas_out_txt << "m,n,k,max_componentwise_error" << std::endl;
+
+#ifdef USE_OZIMMU
         std::ofstream ozimmu_out_bin("results/" + matrix_type + "/all_componentwise_errors.ozimmu.bin", std::ios::binary);
         std::ofstream ozimmu_out_txt("results/" + matrix_type + "/max_componentwise_errors.ozimmu.txt");
         ozimmu_out_txt << "m,n,k,max_componentwise_error" << std::endl;
-
+#endif
         for ( dim = min_dim; dim <= max_dim; dim = 2*dim ){
 
             // initialize A and B matrices
@@ -112,12 +121,21 @@ int main(){
             write_matrix_bytes_to_file(strassen_out_bin, &errors[0], ldc, dim, dim);
             strassen_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_error << std::endl;
 
-            // run ozimmu gemm and calculate errors
+            // run cublas gemm and calculate errors
             init_zero_matrix(&C[0], n, dim, dim);
             cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
             max_componentwise_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
+            write_matrix_bytes_to_file(cublas_out_bin, &errors[0], ldc, dim, dim);
+            cublas_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_error << std::endl;
+
+#ifdef USE_OZIMMU
+            // run ozimmu gemm and calculate errors
+            init_zero_matrix(&C[0], n, dim, dim);
+            cublas_ozimmu_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
+            max_componentwise_error = get_componentwise_errors(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc);
             write_matrix_bytes_to_file(ozimmu_out_bin, &errors[0], ldc, dim, dim);
             ozimmu_out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_error << std::endl;
+#endif
         }
         netlibblas_out_bin.close();
         netlibblas_out_txt.close();
@@ -127,8 +145,12 @@ int main(){
         openblas_out_txt.close();
         strassen_out_bin.close();
         strassen_out_txt.close();
+        cublas_out_bin.close();
+        cublas_out_txt.close();
+#ifdef USE_OZIMMU
         ozimmu_out_bin.close();
         ozimmu_out_txt.close();
+#endif
     }
 
 #else
@@ -171,11 +193,19 @@ int main(){
         printf("C (strassen):\n");
         print_matrix_to_stdout(&C[0], ldc, dim, dim);
 
-        // run ozimmu gemm
+        // run cublas gemm
         init_zero_matrix(&C[0], n, dim, dim);
         cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
+        printf("C (cublas):\n");
+        print_matrix_to_stdout(&C[0], ldc, dim, dim);
+
+#ifdef USE_OZIMMU
+        // run ozimmu gemm
+        init_zero_matrix(&C[0], n, dim, dim);
+        cublas_ozimmu_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
         printf("C (ozIMMU):\n");
         print_matrix_to_stdout(&C[0], ldc, dim, dim);
+#endif
     }
 
 #endif

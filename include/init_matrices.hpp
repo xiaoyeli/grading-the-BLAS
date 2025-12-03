@@ -5,6 +5,7 @@
 #include <random>
 #include <algorithm>
 #include <vector>
+#include <cassert>
 
 #define Z_RATIO 0.25
 
@@ -118,6 +119,36 @@ void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, cons
     return;
 }
 
+void init_test3_matrices_fp64( double *A, const int32_t lda, double *B, const int32_t ldb, const int32_t dim ){
+
+    int32_t i, j;
+    int32_t max_exponent = 1023 - 1;
+    int32_t min_exponent = -1022 + 1;
+    std::vector<double> x(dim);
+    std::vector<double> D(dim * dim);
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<double> generator(1.0, 2.0);
+
+    for ( i = 0; i < dim; ++i ){
+        x[i] = generator(rd);
+    }
+
+    for ( i = 0; i < dim; ++i ){
+        for ( j = 0; j < dim; ++j ){
+            A[i + j*lda] = x[i];
+        }
+    }
+
+    for ( j = 0; j < dim; ++j ){
+        double temp = x[j] * 1.0 / std::ldexp(1.0, min_exponent + (i * (max_exponent - min_exponent)) / (dim - 1));
+        for ( i = 0; i < dim; ++i ){
+            B[i + j*ldb] = temp;
+        }
+    }
+}
+
 template <typename T>
 void init_matrices( std::string type, T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
     if ( type == "U_0_1" ){
@@ -128,6 +159,11 @@ void init_matrices( std::string type, T *A, const int32_t lda, T *B, const int32
     }
     else if ( type == "test1" ){
         init_test1_matrices( A, lda, B, ldb, m, k, n );
+    }
+    else if ( type == "test3" ){
+        static_assert( std::is_same<T, double>::value, "test3 matrices are only implemented for double precision." );
+        assert( m == n && n == k && "test3 matrices are only implemented for square matrices.");
+        init_test3_matrices_fp64( A, lda, B, ldb, m );
     }
     else{
         // default to U(0,1)

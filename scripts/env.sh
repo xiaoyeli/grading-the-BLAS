@@ -30,6 +30,15 @@ else
     echo "Warning: Could not find libblis.so"
 fi
 
+PATH_OZIMMU_LIB=$(find -name "libozimmu.so" | head -n 1 | xargs realpath)
+if [ -e "${PATH_OZIMMU_LIB}" ]
+then
+    echo "Found libozimmu.so at ${PATH_OZIMMU_LIB}; adding to LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(dirname ${PATH_OZIMMU_LIB})
+else
+    echo "Warning: Could not find libozimmu.so"
+fi
+
 PATH_CUBLAS_LIB=$(find ${CUDA_HOME}/../../math_libs -name "libcublas.so" | head -n 1 | xargs realpath)
 if [ -e "${PATH_CUBLAS_LIB}" ]
 then
@@ -43,5 +52,5 @@ set -v
 export OMP_PROC_BIND=close
 export OMP_PLACES=cores
 export OMP_NUM_THREADS=64
-export OZIMMU_COMPUTE_MODE=fp64_int8_9
+export OZIMMU_COMPUTE_MODE=fp64_int8_3
 set +v

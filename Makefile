@@ -7,10 +7,14 @@ ifeq ($(SANITY),1)
 CPPFLAGS += -DSANITY
 endif
 
+ifneq ($(USE_OZIMMU),0)
+CPPFLAGS += -DUSE_OZIMMU
+endif
+
 # directories
 SRC_DIR := src
 OBJ_DIR := obj
-RESULTS_DIRS := results/U_0_1 results/U_-1_1 results/test1
+RESULTS_DIRS := results/U_0_1 results/U_-1_1 results/test1 results/test3
 
 BIN := main
 
