@@ -54,7 +54,7 @@ int main(){
 #ifdef SANITY
     min_dim = max_dim = 4;
 #else
-    max_dim = 8192;
+    max_dim = 2048;
     min_dim = 32;
 #endif
     m = n = k = lda = ldb = ldc = max_dim;
