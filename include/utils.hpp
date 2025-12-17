@@ -55,18 +55,25 @@ void print_matrix_to_stdout( const T *A, const int32_t lda, const int32_t m, con
 }
 
 template <typename T>
-void postprocess( const T *A_ref, const int32_t lda_ref, const T *A, const int32_t lda, const int32_t m, const int32_t n, T *errors, const int32_t lde, double *max_componentwise_abs_error, int32_t *n_zeros ){
+void postprocess( const T *A_ref, const int32_t lda_ref, const T *A, const int32_t lda, const int32_t m, const int32_t n, T *signed_absolute_errors, const int32_t lde, double * max_componentwise_unsigned_relative_error, double * max_componentwise_unsigned_absolute_error, int32_t *n_zeros ){
     int32_t i, j;
-    double abs_error;
 
-    *max_componentwise_abs_error = 0.0;
+    double unsigned_relative_error;
+    double unsigned_absolute_error;
+
+    *max_componentwise_unsigned_relative_error = 0.0;
+    *max_componentwise_unsigned_absolute_error = 0.0;
     *n_zeros = 0;
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            errors[i + j*lde] = A_ref[i + j*lda_ref] - A[i + j*lda];
-            abs_error = fabs(errors[i + j*lde]);
-            if (abs_error > *max_componentwise_abs_error) {
-                *max_componentwise_abs_error = abs_error;
+            signed_absolute_errors[i + j*lde] = A_ref[i + j*lda_ref] - A[i + j*lda];
+            unsigned_absolute_error = fabs(signed_absolute_errors[i + j*lde]);
+            unsigned_relative_error = unsigned_absolute_error / fabs(A_ref[i + j*lda_ref]);
+            if ( unsigned_absolute_error > *max_componentwise_unsigned_absolute_error ) {
+                *max_componentwise_unsigned_absolute_error = unsigned_absolute_error;
+            }
+            if ( unsigned_relative_error > *max_componentwise_unsigned_relative_error ){
+                *max_componentwise_unsigned_relative_error = unsigned_relative_error;
             }
             if ( A[i + j*lda] == 0.0 ){
                 (*n_zeros)++;

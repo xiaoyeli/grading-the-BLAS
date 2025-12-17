@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 #ifdef USE_OZIMMU
-#define LIB_NAME "ozimmu"
+#define LIB_NAME "ozimmu_auto_thresh0"
 #endif
 
 int main(){
@@ -63,15 +63,16 @@ int main(){
     std::vector<double> B(k*n);
     std::vector<double> C(m*n);
 
-    double max_componentwise_abs_error;
+    double max_componentwise_unsigned_absolute_error;
+    double max_componentwise_unsigned_relative_error;
     std::vector<double> C_ref(m*n);
-    std::vector<double> errors(m*n);
+    std::vector<double> componentwise_signed_absolute_errors(m*n);
 
     std::vector<std::string> matrix_types;
 #ifdef SANITY
     matrix_types.push_back("sanity");
 #else
-    matrix_types.push_back("test1");
+    // matrix_types.push_back("test1");
     matrix_types.push_back("test3");
     matrix_types.push_back("U_0_1");
     matrix_types.push_back("U_-1_1");
@@ -82,9 +83,9 @@ int main(){
         std::ofstream out_bin("results/" + matrix_type + "/reference_values.bin", std::ios::binary);
 #else
         std::ifstream in_bin("results/" + matrix_type + "/reference_values.bin", std::ios::binary);
-        std::ofstream out_bin("results/" + matrix_type + "/all_componentwise_errors." + LIB_NAME + ".bin", std::ios::binary);
-        std::ofstream out_txt("results/" + matrix_type + "/max_componentwise_abs_errors." + LIB_NAME + ".txt");
-        out_txt << "m,n,k,max_componentwise_abs_error,n_zeros" << std::endl;
+        std::ofstream out_bin("results/" + matrix_type + "/all_componentwise_signed_absolute_errors." + LIB_NAME + ".bin", std::ios::binary);
+        std::ofstream out_txt("results/" + matrix_type + "/max_componentwise_unsigned_errors." + LIB_NAME + ".txt");
+        out_txt << "m,n,k,max_componentwise_unsigned_relative_error,max_componentwise_unsigned_absolute_error,n_zeros" << std::endl;
 #endif
         for ( dim = min_dim; dim <= max_dim; dim = 2*dim ){
 
@@ -119,9 +120,9 @@ int main(){
             print_matrix_to_stdout(&C[0], ldc, dim, dim);
 #endif
             // calculate and save errors
-            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &errors[0], ldc, &max_componentwise_abs_error, &n_zeros);
-            write_matrix_bytes_to_file(out_bin, &errors[0], ldc, dim, dim);
-            out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_abs_error << "," << n_zeros << std::endl;
+            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &componentwise_signed_absolute_errors[0], ldc, &max_componentwise_unsigned_relative_error, &max_componentwise_unsigned_absolute_error, &n_zeros);
+            write_matrix_bytes_to_file(out_bin, &componentwise_signed_absolute_errors[0], ldc, dim, dim);
+            out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_unsigned_relative_error << "," << n_zeros << std::endl;
 #endif
         }
         out_bin.close();
