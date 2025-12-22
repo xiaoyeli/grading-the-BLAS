@@ -2,17 +2,17 @@
 # User Options
 #############################
 
-DGEMM_IMPLEMENTATIONS := REFERENCE NETLIBBLAS BLIS OPENBLAS STRASSEN CUBLAS OZIMMU
-DGEMM_IMPL ?= REFERENCE
+DGEMM_IMPLEMENTATIONS := REFERENCE_1 NETLIBBLAS BLIS OPENBLAS STRASSEN_1LVL CUBLAS OZIMMU
+DGEMM_IMPL ?= REFERENCE_1
 
 # Directories
 SRC_DIR := src
 INC_DIR := include
 LIB_DIR := lib
-RESULTS_DIRS := results/U_0_1 results/U_-1_1 results/test1 results/test3 results/sanity
 
 # Flags
-CXXFLAGS := -O0 -I$(INC_DIR)
+CXXFLAGS := -g -O0 -I$(INC_DIR) -I/opt/cray/pe/hdf5/1.14.3.1/gnu/12.3/include
+LDFLAGS := -L/opt/cray/pe/hdf5/1.14.3.1/gnu/12.3/lib -lhdf5_cpp -lhdf5
 
 # Compiler
 ifneq ($(filter $(DGEMM_IMPL), OZIMMU CUBLAS),)
@@ -28,63 +28,73 @@ else ifeq ($(VERBOSE),1)
 	CXXFLAGS += -DVERBOSE
 endif
 
+# Determinisim
+ifeq ($(DETERMINISTIC),1)
+	CXXFLAGS += -DDETERMINISTIC
+endif
+
 # Outputs
 MAIN_EXE     := main
-STRASSEN_SO  := libstrassen_dgemm.so
+STRASSEN_1LVL_SO  := libstrassen_1lvl_dgemm.so
+REFERENCE_1_SO := libreference_1_dgemm.so
 
 ########################################
-ifeq ($(DGEMM_IMPL),REFERENCE)
-	LDFLAGS := 
-	RUN_PREFIX :=
+ifeq ($(DGEMM_IMPL),REFERENCE_1)
+	LDFLAGS +=  -L$(LIB_DIR) -lreference_1_dgemm
+	CXXFLAGS += -DDGEMM_IMPL=\"REFERENCE_1\"
+    RUN_PREFIX := LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(LIB_DIR)
 endif
 
 ifeq ($(DGEMM_IMPL),NETLIBBLAS)
     LDFLAGS += -lrefblas
-	CXXFLAGS += -DUSE_NETLIBBLAS
+	CXXFLAGS += -DDGEMM_IMPL=\"NETLIBBLAS\"
     RUN_PREFIX :=
 endif
 
 ifeq ($(DGEMM_IMPL),BLIS)
     LDFLAGS += -lblis
-	CXXFLAGS += -DUSE_BLIS
+	CXXFLAGS += -DDGEMM_IMPL=\"BLIS\"
     RUN_PREFIX :=
 endif
 
 ifeq ($(DGEMM_IMPL),OPENBLAS)
     LDFLAGS += -lopenblas
-	CXXFLAGS += -DUSE_OPENBLAS
+	CXXFLAGS += -DDGEMM_IMPL=\"OPENBLAS\"
     RUN_PREFIX :=
 endif
 
-ifeq ($(DGEMM_IMPL),STRASSEN)
-    LDFLAGS += -L$(LIB_DIR) -lstrassen_dgemm
-	CXXFLAGS += -DUSE_STRASSEN
+ifeq ($(DGEMM_IMPL),STRASSEN_1LVL)
+    LDFLAGS += -L$(LIB_DIR) -lstrassen_1lvl_dgemm
+	CXXFLAGS += -DDGEMM_IMPL=\"STRASSEN_1LVL\"
     RUN_PREFIX := LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(LIB_DIR)
 endif
 
 ifeq ($(DGEMM_IMPL),CUBLAS)
     LDFLAGS += -lcublas
-	CXXFLAGS += -DUSE_CUBLAS -DCUDA
+	CXXFLAGS += -DDGEMM_IMPL=\"CUBLAS\" -DCUDA
     RUN_PREFIX :=
 endif
 
 ifeq ($(DGEMM_IMPL),OZIMMU)
-    LDFLAGS := -lcublas
-	CXXFLAGS += -DUSE_OZIMMU -DCUDA
+    LDFLAGS += -lcublas
+	CXXFLAGS += -DDGEMM_IMPL=\"OZIMMU\" -DCUDA
     RUN_PREFIX := LD_PRELOAD=$(OZIMMU_SO_PATH)
 endif
 ########################################
 
-all: dirs $(LIB_DIR)/$(STRASSEN_SO) $(MAIN_EXE)
+all: dirs $(LIB_DIR)/$(STRASSEN_1LVL_SO) $(LIB_DIR)/$(REFERENCE_1_SO) $(MAIN_EXE)
 
-$(LIB_DIR)/$(STRASSEN_SO): $(SRC_DIR)/strassen_dgemm.cpp
+$(LIB_DIR)/$(STRASSEN_1LVL_SO): $(SRC_DIR)/strassen_1lvl_dgemm.cpp
+	g++ -O0 -fPIC -shared -Iinclude $< -o $@
+
+$(LIB_DIR)/$(REFERENCE_1_SO): $(SRC_DIR)/reference_1_dgemm.cpp
 	g++ -O0 -fPIC -shared -Iinclude $< -o $@
 
 $(MAIN_EXE): $(SRC_DIR)/main.cpp
 	$(CXX) $(CXXFLAGS) $< $(LDFLAGS) -o $@
 
 dirs:
-	@mkdir -p $(RESULTS_DIRS) $(LIB_DIR)
+	@mkdir -p $(LIB_DIR)
 
 run: all
 	$(RUN_PREFIX) ./$(MAIN_EXE)

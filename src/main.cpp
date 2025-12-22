@@ -1,11 +1,19 @@
 #include "init_matrices.hpp"
 #include "utils.hpp"
-#include "reference_gemm.hpp"
 #include "cublas_gemm_wrapper.hpp"
 #include <stdio.h>
 #include <stdint.h>
 #include <fstream>
 #include <vector>
+#include <ctime>
+#include <iomanip>
+#include <random>
+#include <H5Cpp.h>
+
+using namespace std;
+using namespace H5;
+
+#define HDF5_FILENAME "grading_dgemm.h5"
 
 extern "C" {
     void dgemm_(const char* TRANSA, const char* TRANSB,
@@ -17,120 +25,84 @@ extern "C" {
                 double* C, const int* LDC);
 }
 
-#ifdef USE_NETLIBBLAS
-#define LIB_NAME "netlibblas"
-#endif
-
-#ifdef USE_BLIS
-#include <blis.h>
-#define LIB_NAME "blis"
-#endif
-
-#ifdef USE_OPENBLAS
-#define LIB_NAME "openblas"
-#endif
-
-#ifdef USE_STRASSEN
-#define LIB_NAME "strassen"
-#endif
-
-#ifdef USE_CUBLAS
-#define LIB_NAME "cublas"
-#endif
-
-#ifdef USE_OZIMMU
-#define LIB_NAME "ozimmu_auto_thresh0"
+#ifndef DGEMM_IMPL
+#define DGEMM_IMPL "unknown"
 #endif
 
 int main(){
-    int32_t m, k, n, lda, ldb, ldc;
-    int32_t dim, min_dim, max_dim;
-    int32_t n_zeros;
 
+    H5File h5_file;
+    try{
+        h5_file = H5File(HDF5_FILENAME, H5F_ACC_RDWR);
+    } catch ( H5::FileIException& e ){
+        h5_file = H5File(HDF5_FILENAME, H5F_ACC_TRUNC);
+    }
+
+    string impl = DGEMM_IMPL;
+    impl = "impl_" + impl;
     char transpose = 'N';
     double alpha = 1.0;
     double beta = 0.0;
 
+    int32_t max_m, max_k, max_n, lda, ldb, ldc;
+    int32_t min_dim, max_dim;
+
 #ifdef SANITY
     min_dim = max_dim = 4;
 #else
-    max_dim = 2048;
+    max_dim = 64;
     min_dim = 32;
 #endif
-    m = n = k = lda = ldb = ldc = max_dim;
+    max_m = max_k = max_n = lda = ldb = ldc = max_dim;
 
-    std::vector<double> A(m*k);
-    std::vector<double> B(k*n);
-    std::vector<double> C(m*n);
-
-    double max_componentwise_unsigned_absolute_error;
-    double max_componentwise_unsigned_relative_error;
-    std::vector<double> C_ref(m*n);
-    std::vector<double> componentwise_signed_absolute_errors(m*n);
-
-    std::vector<std::string> matrix_types;
+    vector<double> A(max_m*max_k);
+    vector<double> B(max_k*max_n);
+    vector<double> C(max_m*max_n);
+    vector<string> matrix_types;
 #ifdef SANITY
-    matrix_types.push_back("sanity");
 #else
-    // matrix_types.push_back("test1");
+    // matrix_types.push_back("sanity");
+    matrix_types.push_back("test1");
     matrix_types.push_back("test3");
     matrix_types.push_back("U_0_1");
     matrix_types.push_back("U_-1_1");
 #endif
-    for ( const auto& matrix_type : matrix_types ){
-
-#ifndef LIB_NAME
-        std::ofstream out_bin("results/" + matrix_type + "/reference_values.bin", std::ios::binary);
-#else
-        std::ifstream in_bin("results/" + matrix_type + "/reference_values.bin", std::ios::binary);
-        std::ofstream out_bin("results/" + matrix_type + "/all_componentwise_signed_absolute_errors." + LIB_NAME + ".bin", std::ios::binary);
-        std::ofstream out_txt("results/" + matrix_type + "/max_componentwise_unsigned_errors." + LIB_NAME + ".txt");
-        out_txt << "m,n,k,max_componentwise_unsigned_relative_error,max_componentwise_unsigned_absolute_error,n_zeros" << std::endl;
-#endif
-        for ( dim = min_dim; dim <= max_dim; dim = 2*dim ){
+    for ( const string& matrix_type : matrix_types ){
+        for ( int32_t dim = min_dim; dim <= max_dim; dim = 2*dim ){
+            
+            int32_t m, n, k;
+            m = n = k = dim;
 
             // initialize A and B matrices
-            init_matrices(matrix_type, &A[0], k, &B[0], lda, dim, dim, dim);
+#ifdef DETERMINISTIC
+            int32_t seed = 0;
+#else
+            int32_t seed = time(nullptr);
+#endif
+            init_matrices(matrix_type, seed, m, n, k, &A[0], lda, &B[0], ldb);
+            write_A_and_B_to_hdf5(h5_file, matrix_type, seed, m, n, k, &A[0], lda, &B[0], ldb);
 #ifdef VERBOSE
             printf("A matrix:\n");
-            print_matrix_to_stdout(&A[0], lda, dim, dim);
+            print_matrix_to_stdout_dec(m, k, &A[0], lda);
             printf("B matrix:\n");
-            print_matrix_to_stdout(&B[0], ldb, dim, dim);
+            print_matrix_to_stdout_dec(k, n, &B[0], ldb);
 #endif
-            // get reference values, either calculating them or reading them from file
-#ifndef LIB_NAME
-            init_zero_matrix(&C_ref[0], n, dim, dim);
-            reference_gemm(&A[0], lda, &B[0], ldb, dim, dim, dim, &C_ref[0], ldc);
-            write_matrix_bytes_to_file(out_bin, &C_ref[0], ldc, dim, dim);
-#else
-            read_matrix_bytes_from_file(in_bin, &C_ref[0], ldc, dim, dim);
-#ifdef VERBOSE
-            printf("C reference matrix:\n");
-            print_matrix_to_stdout(&C_ref[0], ldc, dim, dim);
-#endif
-            // call DGEMM for the library under test
-            init_zero_matrix(&C[0], n, dim, dim);
+            // call DGEMM
+            init_zero_matrix(m, n, &C[0], ldc);
 #ifdef CUDA
-            cublas_gemm_wrapper(&A[0], lda, &B[0], ldb, dim, dim, dim, &C[0], ldc);
+            cublas_gemm_wrapper(m, n, k, &A[0], lda, &B[0], ldb, &C[0], ldc);
 #else
-            dgemm_(&transpose, &transpose, &dim, &dim, &dim, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
+            dgemm_(&transpose, &transpose, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
 #endif
 #ifdef VERBOSE
             printf("C matrix:\n");
-            print_matrix_to_stdout(&C[0], ldc, dim, dim);
+            print_matrix_to_stdout_dec(m, n, &C[0], ldc);
 #endif
-            // calculate and save errors
-            postprocess(&C_ref[0], ldc, &C[0], ldc, dim, dim, &componentwise_signed_absolute_errors[0], ldc, &max_componentwise_unsigned_relative_error, &max_componentwise_unsigned_absolute_error, &n_zeros);
-            write_matrix_bytes_to_file(out_bin, &componentwise_signed_absolute_errors[0], ldc, dim, dim);
-            out_txt << dim << "," << dim << "," << dim << "," << max_componentwise_unsigned_relative_error << "," << n_zeros << std::endl;
-#endif
+            write_C_to_hdf5(h5_file, impl, matrix_type, seed, m, n, k, &C[0], ldc);
         }
-        out_bin.close();
-#ifdef LIB_NAME
-        in_bin.close();
-        out_txt.close();
-#endif
     }
+
+    H5Fclose(h5_file.getId());
 
     return 0;
 }

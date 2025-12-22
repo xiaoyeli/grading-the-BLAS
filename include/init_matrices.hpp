@@ -10,7 +10,7 @@
 #define Z_RATIO 0.25
 
 template <typename T>
-void init_zero_matrix( T *A, const int32_t lda, const int32_t m, const int32_t n ){
+void init_zero_matrix( const int32_t m, const int32_t n, T *A, const int32_t lda ){
 
     int32_t i, j;
 
@@ -23,7 +23,7 @@ void init_zero_matrix( T *A, const int32_t lda, const int32_t m, const int32_t n
 }
 
 template <typename T>
-void init_sanity_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
+void init_sanity_matrices( const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
 
     int32_t i, j;
 
@@ -44,9 +44,9 @@ void init_sanity_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, con
 }
 
 template <typename T>
-void init_random_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n, const T lower_bound, const T upper_bound ){
+void init_random_matrices(  const T lower_bound, const T upper_bound, int32_t seed, const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
     
-    std::mt19937 gen(0);
+    std::mt19937 gen(seed);
     std::uniform_real_distribution<T> generator(lower_bound, upper_bound);
     int32_t i, j;
 
@@ -67,13 +67,13 @@ void init_random_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, con
 }
 
 template <typename T>
-void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
+void init_test1_matrices( int32_t seed, const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
 
-    init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(0.0), static_cast<T>(1.0) );
+    init_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
     int32_t i, j;
 
     // figure out which rows/columns to zero
-    std::mt19937 gen(0);
+    std::mt19937 gen(seed);
     std::vector<bool> zero_rows_A(m);
     std::vector<bool> zero_cols_B(n);
     int32_t n_zero;
@@ -117,14 +117,14 @@ void init_test1_matrices( T *A, const int32_t lda, T *B, const int32_t ldb, cons
     return;
 }
 
-void init_test3_matrices_fp64( double *A, const int32_t lda, double *B, const int32_t ldb, const int32_t dim ){
+void init_test3_matrices_fp64( int32_t seed, const int32_t dim, double *A, const int32_t lda, double *B, const int32_t ldb ){
 
     int32_t i, j;
     int32_t max_exponent = 1000;
     int32_t min_exponent = -1000;
     std::vector<double> x(dim);
 
-    std::mt19937 gen(0);
+    std::mt19937 gen(seed);
     std::uniform_real_distribution<double> generator(1.0, 2.0);
     std::vector<double> diag_D(dim);
     std::vector<double> diag_D_inv(dim);
@@ -152,27 +152,27 @@ void init_test3_matrices_fp64( double *A, const int32_t lda, double *B, const in
 }
 
 template <typename T>
-void init_matrices( std::string type, T *A, const int32_t lda, T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n ){
+void init_matrices( std::string type, int32_t seed, const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
     if ( type == "U_0_1" ){
-        init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(0.0), static_cast<T>(1.0) );
+        init_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
     }
     if ( type == "U_-1_1" ){
-        init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(-1.0), static_cast<T>(1.0) );
+        init_random_matrices( static_cast<T>(-1.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
     }
     else if ( type == "test1" ){
-        init_test1_matrices( A, lda, B, ldb, m, k, n );
+        init_test1_matrices( seed, m, n, k, A, lda, B, ldb );
     }
     else if ( type == "test3" ){
         static_assert( std::is_same<T, double>::value, "test3 matrices are only implemented for double precision." );
         assert( m == n && n == k && "test3 matrices are only implemented for square matrices.");
-        init_test3_matrices_fp64( A, lda, B, ldb, m );
+        init_test3_matrices_fp64( seed, m, A, lda, B, ldb );
     }
     else if ( type == "sanity" ){
-        init_sanity_matrices( A, lda, B, ldb, m, k, n );
+        init_sanity_matrices(  m, n, k, A, lda, B, ldb );
     }
     else{
         // default to U(0,1)
-        init_random_matrices( A, lda, B, ldb, m, k, n, static_cast<T>(0.0), static_cast<T>(1.0) );
+        init_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
     }
 
     return;

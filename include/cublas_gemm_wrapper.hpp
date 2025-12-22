@@ -2,7 +2,7 @@
 #include <cublas_v2.h>
 
 template <typename T>
-void cublas_gemm_wrapper( const T *A, const int32_t lda, const T *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n, T *C, const int32_t ldc ){
+void cublas_gemm_wrapper( const int32_t m, const int32_t n, const int32_t k, const T *A, const int32_t lda, const T *B, const int32_t ldb, T *C, const int32_t ldc ){
     cublasHandle_t handle;
     cublasCreate(&handle);
 

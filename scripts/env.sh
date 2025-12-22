@@ -1,5 +1,7 @@
 #!/bin/bash
 
+module load cray-hdf5/1.14.3.1
+
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd ${REPO_ROOT}
 
