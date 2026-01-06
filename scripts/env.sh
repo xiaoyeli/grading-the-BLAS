@@ -1,6 +1,8 @@
 #!/bin/bash
 
 module load cray-hdf5/1.14.3.1
+module load gcc-native/13.2
+module load cudatoolkit/13.0
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd ${REPO_ROOT}

@@ -31,15 +31,8 @@ extern "C" {
 
 int main(){
 
-    H5File h5_file;
-    try{
-        h5_file = H5File(HDF5_FILENAME, H5F_ACC_RDWR);
-    } catch ( H5::FileIException& e ){
-        h5_file = H5File(HDF5_FILENAME, H5F_ACC_TRUNC);
-    }
+    H5File h5_file = init_hdf5(HDF5_FILENAME);
 
-    string impl = DGEMM_IMPL;
-    impl = "impl_" + impl;
     char transpose = 'N';
     double alpha = 1.0;
     double beta = 0.0;
@@ -50,7 +43,7 @@ int main(){
 #ifdef SANITY
     min_dim = max_dim = 4;
 #else
-    max_dim = 64;
+    max_dim = 2048;
     min_dim = 32;
 #endif
     max_m = max_k = max_n = lda = ldb = ldc = max_dim;
@@ -74,13 +67,14 @@ int main(){
             m = n = k = dim;
 
             // initialize A and B matrices
-#ifdef DETERMINISTIC
-            int32_t seed = 0;
-#else
+#ifdef STOCHASTIC
             int32_t seed = time(nullptr);
+#else
+            int32_t seed = 0;
 #endif
             init_matrices(matrix_type, seed, m, n, k, &A[0], lda, &B[0], ldb);
-            write_A_and_B_to_hdf5(h5_file, matrix_type, seed, m, n, k, &A[0], lda, &B[0], ldb);
+            write_matrix_to_hdf5(h5_file, &A[0], lda, "A", matrix_type, m, k, seed);
+            write_matrix_to_hdf5(h5_file, &B[0], ldb, "B", matrix_type, k, n, seed);
 #ifdef VERBOSE
             printf("A matrix:\n");
             print_matrix_to_stdout_dec(m, k, &A[0], lda);
@@ -98,7 +92,7 @@ int main(){
             printf("C matrix:\n");
             print_matrix_to_stdout_dec(m, n, &C[0], ldc);
 #endif
-            write_C_to_hdf5(h5_file, impl, matrix_type, seed, m, n, k, &C[0], ldc);
+            write_matrix_to_hdf5(h5_file, &C[0], ldc, DGEMM_IMPL, matrix_type, m, n, seed);
         }
     }
 

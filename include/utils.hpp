@@ -4,10 +4,19 @@
 #include <stdint.h>
 #include <H5Cpp.h>
 
-#define CHUNK_SIZE 32
+#define METADATA_STR_LEN 64
 
 using namespace H5;
 using namespace std;
+
+struct GEMM_Metadata {
+    int32_t matrix_id;
+    char matrix_name[METADATA_STR_LEN];
+    char input_type[METADATA_STR_LEN];
+    int32_t m;
+    int32_t n;
+    int32_t seed;
+};
 
 template <typename T>
 void print_matrix_to_stdout_hex( const int32_t m, const int32_t n, const T *A, const int32_t lda ){
@@ -39,140 +48,145 @@ void print_matrix_to_stdout_dec( const int32_t m, const int32_t n, const T *A, c
     return;
 }
 
-
-void write_A_and_B_to_hdf5( H5File& h5_file, string matrix_type, int32_t seed, int32_t m, int32_t n, int32_t k, double *A, const int32_t lda, double *B, const int32_t ldb ){
+H5File init_hdf5( string filename ){
     
-    Group matrix_type_group;
-    string matrix_type_group_name = "mat_" + matrix_type;
-    if (H5Lexists(h5_file.getId(), matrix_type_group_name.c_str(), H5P_DEFAULT) ){
-        matrix_type_group = h5_file.openGroup(matrix_type_group_name);
-    } else {
-        matrix_type_group = h5_file.createGroup(matrix_type_group_name);
+    H5::Exception::dontPrint();
+    H5File h5_file;
+    try{
+        h5_file = H5File(filename, H5F_ACC_RDWR);
+    } catch ( H5::FileIException& e ){
+        h5_file = H5File(filename, H5F_ACC_TRUNC);
+        Group matrices_group;
+        string matrices_group_name = "matrices";
+        matrices_group = h5_file.createGroup(matrices_group_name);
+
+        H5::CompType meta_type(sizeof(GEMM_Metadata));
+
+        meta_type.insertMember(
+            "matrix_id",
+            HOFFSET(GEMM_Metadata, matrix_id),
+            H5::PredType::NATIVE_INT32
+        );
+
+        meta_type.insertMember(
+            "matrix_name",
+            HOFFSET(GEMM_Metadata, matrix_name),
+            H5::StrType(H5::PredType::C_S1, METADATA_STR_LEN)
+        );
+
+        meta_type.insertMember(
+            "input_type",
+            HOFFSET(GEMM_Metadata, input_type),
+            H5::StrType(H5::PredType::C_S1, METADATA_STR_LEN)
+        );
+
+        meta_type.insertMember(
+            "m",
+            HOFFSET(GEMM_Metadata, m),
+            H5::PredType::NATIVE_INT32
+        );
+
+        meta_type.insertMember(
+            "n",
+            HOFFSET(GEMM_Metadata, n),
+            H5::PredType::NATIVE_INT32
+        );
+
+        meta_type.insertMember(
+            "seed",
+            HOFFSET(GEMM_Metadata, seed),
+            H5::PredType::NATIVE_INT32
+        );
+
+        hsize_t initial_size = 0;
+        hsize_t max_size     = H5S_UNLIMITED;
+
+        H5::DataSpace meta_space(1, &initial_size, &max_size);
+
+        // Enable chunking (required for extendable datasets)
+        H5::DSetCreatPropList plist;
+        hsize_t meta_chunk_size = 1024;
+        plist.setChunk(1, &meta_chunk_size);
+        plist.setDeflate(4);
+
+        H5::DataSet meta_ds = h5_file.createDataSet(
+            "/metadata",
+            meta_type,
+            meta_space,
+            plist
+        );
     }
+    return h5_file;
+}
+
+int32_t construct_matrix_id( string matrix_name, string input_type, int32_t m, int32_t n, int32_t seed ){
+    string id_str = matrix_name + "_" + input_type + "_" + to_string(m) + "m_" + to_string(n) + "n_" + to_string(seed);
+    std::hash<string> hasher;
+    return static_cast<int32_t>( hasher(id_str) );
+}
+
+void write_matrix_to_hdf5( H5File& h5_file, double *A, const int32_t lda, string matrix_name, string input_type, int32_t m, int32_t n, int32_t seed ){
     
-    Group dimension_group;
-    string dimension_group_name = "dim_" + to_string(m) + "m_" + to_string(n) + "n_" + to_string(k) + "k";
-    if ( H5Lexists(matrix_type_group.getId(), dimension_group_name.c_str(), H5P_DEFAULT) ){
-        dimension_group = matrix_type_group.openGroup(dimension_group_name);
-    } else {
-        dimension_group = matrix_type_group.createGroup(dimension_group_name);
-    }
-
-    Group seed_group;
-    string seed_group_name = "seed_" + to_string(seed);
-    if ( H5Lexists(dimension_group.getId(), seed_group_name.c_str(), H5P_DEFAULT) ){
-        seed_group = dimension_group.openGroup(seed_group_name);
-    } else {
-        seed_group = dimension_group.createGroup(seed_group_name);
-    }
-
-
-    if ( H5Lexists(seed_group.getId(), "A", H5P_DEFAULT) && H5Lexists(seed_group.getId(), "B", H5P_DEFAULT) ){
+    string matrices_group_name = "matrices";
+    Group matrices_group = h5_file.openGroup(matrices_group_name);
+    int32_t matrix_id = construct_matrix_id(matrix_name, input_type, m, n, seed);
+    string matrix_id_name = to_string(matrix_id);
+    if (H5Lexists(matrices_group.getId(), matrix_id_name.c_str(), H5P_DEFAULT) ){
         return;
     }
 
     DSetCreatPropList plist;
-    hsize_t chunk[2] = {CHUNK_SIZE, CHUNK_SIZE};
-    plist.setChunk(2, chunk);
+    hsize_t matrix_chunk_size[2] = {(hsize_t)m, 1};
+    plist.setChunk(2, matrix_chunk_size);
     plist.setDeflate(4);
 
-    hsize_t dimsA[2] = { (hsize_t)m, (hsize_t)k };
-    DataSpace file_spaceA(2, dimsA);
-    DataSet dset = seed_group.createDataSet("A", PredType::NATIVE_DOUBLE, file_spaceA, plist);
-    for ( int32_t j = 0; j < k; ++j ){
-        hsize_t count[2] = { (hsize_t)k, 1 };
-        hsize_t start[2] = { 0, (hsize_t)j };
-        file_spaceA.selectHyperslab( H5S_SELECT_SET, count, start );
+    hsize_t dimsA[2] = { (hsize_t)m, (hsize_t)n };
+    DataSpace A_file_space(2, dimsA);
+    DataSet dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_DOUBLE, A_file_space, plist);
 
-        hsize_t mem_dims[1] = { (hsize_t)k };
-        DataSpace mem_spaceA(1, mem_dims);
+    for ( int32_t j = 0; j < n; ++j ){
+        hsize_t count[2] = { (hsize_t)n, 1 };
+        hsize_t start[2] = { 0, (hsize_t)j };
+        A_file_space.selectHyperslab( H5S_SELECT_SET, count, start );
+
+        hsize_t mem_dims[1] = { (hsize_t)n };
+        DataSpace A_mem_space(1, mem_dims);
 
         dset.write(
             A + j * lda,
             PredType::NATIVE_DOUBLE,
-            mem_spaceA,
-            file_spaceA
+            A_mem_space,
+            A_file_space
         );
     }
 
-    hsize_t dimsB[2] = { (hsize_t)k, (hsize_t)n };
-    DataSpace file_spaceB(2, dimsB);
-    dset = seed_group.createDataSet("B", PredType::NATIVE_DOUBLE, file_spaceB, plist);
-    for ( int32_t j = 0; j < n; ++j ){
-        hsize_t start[2] = { 0, (hsize_t)j };
-        hsize_t count[2] = { (hsize_t)n, 1 };
-        file_spaceB.selectHyperslab( H5S_SELECT_SET, count, start );
+    DataSet metadata_ds = h5_file.openDataSet("/metadata");
+    DataSpace metadata_dataspace_old = metadata_ds.getSpace();
+    hsize_t old_size;
+    metadata_dataspace_old.getSimpleExtentDims(&old_size);
 
-        hsize_t mem_dims[1] = { (hsize_t)n };
-        DataSpace mem_spaceB(1, mem_dims);
+    hsize_t new_size = old_size + 1;
+    metadata_ds.extend(&new_size);
 
-        dset.write(
-            B + j * ldb,
-            PredType::NATIVE_DOUBLE,
-            mem_spaceB,
-            file_spaceB
-        );
-    }
-}
+    H5::DataSpace metadata_file_space = metadata_ds.getSpace();
+    hsize_t offset = old_size;
+    hsize_t count  = 1;
+    metadata_file_space.selectHyperslab(H5S_SELECT_SET, &count, &offset);
 
-void write_C_to_hdf5( H5File& h5_file, string impl, string matrix_type, int32_t seed, int32_t m, int32_t n, int32_t k, double *C, const int32_t ldc){
+    // Memory space
+    H5::DataSpace metadata_mem_space(1, &count);
 
-    Group matrix_type_group;
-    string matrix_type_group_name = "mat_" + matrix_type;
-    if (H5Lexists(h5_file.getId(), matrix_type_group_name.c_str(), H5P_DEFAULT) ){
-        matrix_type_group = h5_file.openGroup(matrix_type_group_name);
-    } else {
-        matrix_type_group = h5_file.createGroup(matrix_type_group_name);
-    }
-    
-    Group dimension_group;
-    string dimension_group_name = "dim_" + to_string(m) + "m_" + to_string(n) + "n_" + to_string(k) + "k";
-    if ( H5Lexists(matrix_type_group.getId(), dimension_group_name.c_str(), H5P_DEFAULT) ){
-        dimension_group = matrix_type_group.openGroup(dimension_group_name);
-    } else {
-        dimension_group = matrix_type_group.createGroup(dimension_group_name);
-    }
+    // Fill metadata record
+    GEMM_Metadata metadata{};
+    metadata.matrix_id = matrix_id;
+    snprintf(metadata.matrix_name, METADATA_STR_LEN, "%s", matrix_name.c_str());
+    snprintf(metadata.input_type, METADATA_STR_LEN, "%s", input_type.c_str());
+    metadata.m  = m;
+    metadata.n  = n;
+    metadata.seed = seed;
 
-    Group seed_group;
-    string seed_group_name = "seed_" + to_string(seed);
-    if ( H5Lexists(dimension_group.getId(), seed_group_name.c_str(), H5P_DEFAULT) ){
-        seed_group = dimension_group.openGroup(seed_group_name);
-    } else {
-        seed_group = dimension_group.createGroup(seed_group_name);
-    }
-
-    Group impl_group;
-    string impl_group_name = impl;
-    if ( H5Lexists(seed_group.getId(), impl_group_name.c_str(), H5P_DEFAULT) ){
-        impl_group = seed_group.openGroup(impl_group_name);
-    } else{
-        impl_group = seed_group.createGroup(impl_group_name);
-    }
-
-    hsize_t dims[2] = { (hsize_t)m, (hsize_t)n };
-    DataSpace file_space(2, dims);
-    DSetCreatPropList plist;
-    hsize_t chunk[2] = {CHUNK_SIZE, CHUNK_SIZE};
-    plist.setChunk(2, chunk);
-    plist.setDeflate(4);
-    DataSet dset = impl_group.createDataSet("C", PredType::NATIVE_DOUBLE, file_space, plist);
-
-    for ( int32_t j = 0; j < n; ++j ){
-        hsize_t count[2] = { (hsize_t)n, 1 };
-        hsize_t start[2] = { 0, (hsize_t)j };
-        file_space.selectHyperslab( H5S_SELECT_SET, count, start );
-
-        hsize_t mem_dims[1] = { (hsize_t)n };
-        DataSpace mem_space(1, mem_dims);
-
-        dset.write(
-            C + j * ldc,
-            PredType::NATIVE_DOUBLE,
-            mem_space,
-            file_space
-        );
-    }
-
-    return;
+    // Write
+    H5::CompType meta_type = metadata_ds.getCompType();
+    metadata_ds.write(&metadata, meta_type, metadata_mem_space, metadata_file_space);
 }
 #endif
