@@ -1,8 +1,14 @@
 #!/bin/bash
 
+set -v
+export OMP_PROC_BIND=close
+export OMP_PLACES=cores
+export OMP_NUM_THREADS=64
+set +v
+
 module load cray-hdf5/1.14.3.1
 module load gcc-native/13.2
-module load cudatoolkit/13.0
+module load cudatoolkit/12.9
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd ${REPO_ROOT}
@@ -67,14 +73,3 @@ then
 else
     echo "Warning: Could not find libozimmu.so"
 fi
-
-set -v
-export OMP_PROC_BIND=close
-export OMP_PLACES=cores
-export OMP_NUM_THREADS=64
-export OZIMMU_COMPUTE_MODE=fp64_int8_auto
-export OZIMMU_AUTO_AVG_MANTISSA_LOSS_THRESHOLD=0
-export OZIMMU_INTERCEPT_THRESHOLD_M=2
-export OZIMMU_INTERCEPT_THRESHOLD_N=2
-export OZIMMU_INTERCEPT_THRESHOLD_K=2
-set +v

@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <H5Cpp.h>
 
-#define METADATA_STR_LEN 64
+#define METADATA_STR_LEN 128
 
 using namespace H5;
 using namespace std;
