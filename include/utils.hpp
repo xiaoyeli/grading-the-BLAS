@@ -18,6 +18,19 @@ struct GEMM_Metadata {
     int32_t seed;
 };
 
+template <typename T_to, typename T_from>
+void copy_matrix(  const int32_t m, const int32_t n, T_to *A, const int32_t lda, const T_from *B, const int32_t ldb){
+    
+    int32_t i, j;
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < n; ++j ){
+            A[i + j*lda] = B[i + j*ldb];
+        }
+    }
+
+    return;
+}
+
 template <typename T>
 void print_matrix_to_stdout_hex( const int32_t m, const int32_t n, const T *A, const int32_t lda ){
     int32_t i, j;
@@ -125,7 +138,8 @@ int32_t construct_matrix_id( string matrix_name, string input_type, int32_t m, i
     return static_cast<int32_t>( hasher(id_str) );
 }
 
-void write_matrix_to_hdf5( H5File& h5_file, double *A, const int32_t lda, string matrix_name, string input_type, int32_t m, int32_t n, int32_t seed ){
+template <typename T>
+void write_matrix_to_hdf5( H5File& h5_file, T *A, const int32_t lda, string matrix_name, string input_type, int32_t m, int32_t n, int32_t seed ){
     
     string matrices_group_name = "matrices";
     Group matrices_group = h5_file.openGroup(matrices_group_name);
@@ -142,8 +156,11 @@ void write_matrix_to_hdf5( H5File& h5_file, double *A, const int32_t lda, string
 
     hsize_t dimsA[2] = { (hsize_t)m, (hsize_t)n };
     DataSpace A_file_space(2, dimsA);
+#ifdef EXTENDED_PRECISION_REFERENCE
+    DataSet dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_LDOUBLE, A_file_space, plist);
+#else
     DataSet dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_DOUBLE, A_file_space, plist);
-
+#endif
     for ( int32_t j = 0; j < n; ++j ){
         hsize_t count[2] = { (hsize_t)n, 1 };
         hsize_t start[2] = { 0, (hsize_t)j };
@@ -152,12 +169,21 @@ void write_matrix_to_hdf5( H5File& h5_file, double *A, const int32_t lda, string
         hsize_t mem_dims[1] = { (hsize_t)n };
         DataSpace A_mem_space(1, mem_dims);
 
+#ifdef EXTENDED_PRECISION_REFERENCE
+        dset.write(
+            A + j * lda,
+            PredType::NATIVE_LDOUBLE,
+            A_mem_space,
+            A_file_space
+        );
+#else
         dset.write(
             A + j * lda,
             PredType::NATIVE_DOUBLE,
             A_mem_space,
             A_file_space
         );
+#endif
     }
 
     DataSet metadata_ds = h5_file.openDataSet("/metadata");

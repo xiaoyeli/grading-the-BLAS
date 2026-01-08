@@ -23,6 +23,14 @@ extern "C" {
                 const double* B, const int* LDB,
                 const double* BETA,
                 double* C, const int* LDC);
+
+    void ldgemm_(const char* TRANSA, const char* TRANSB,
+                const int* M, const int* N, const int* K,
+                const long double* ALPHA,
+                const long double* A, const int* LDA,
+                const long double* B, const int* LDB,
+                const long double* BETA,
+                long double* C, const int* LDC);
 }
 
 #ifndef DGEMM_IMPL
@@ -51,6 +59,13 @@ int main(){
     vector<double> A(max_m*max_k);
     vector<double> B(max_k*max_n);
     vector<double> C(max_m*max_n);
+#ifdef EXTENDED_PRECISION_REFERENCE
+    long double alpha_ext;
+    long double beta_ext;
+    vector<long double> A_ext(max_m*max_k);
+    vector<long double> B_ext(max_k*max_n);
+    vector<long double> C_ext(max_m*max_n);
+#endif
     vector<string> matrix_types;
 #ifdef SANITY
 #else
@@ -82,6 +97,15 @@ int main(){
             print_matrix_to_stdout_dec(k, n, &B[0], ldb);
 #endif
             // call DGEMM
+#ifdef EXTENDED_PRECISION_REFERENCE
+            alpha_ext = alpha;
+            beta_ext = beta;
+            copy_matrix(m, k, &A_ext[0], lda, &A[0], lda);
+            copy_matrix(m, k, &B_ext[0], ldb, &B[0], ldb);
+            init_zero_matrix(m, n, &C_ext[0], ldc);
+            ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
+            write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, DGEMM_IMPL, matrix_type, m, n, seed);
+#else
             init_zero_matrix(m, n, &C[0], ldc);
 #ifdef CUDA
             cublas_gemm_wrapper(m, n, k, &A[0], lda, &B[0], ldb, &C[0], ldc);
@@ -93,6 +117,7 @@ int main(){
             print_matrix_to_stdout_dec(m, n, &C[0], ldc);
 #endif
             write_matrix_to_hdf5(h5_file, &C[0], ldc, DGEMM_IMPL, matrix_type, m, n, seed);
+#endif
         }
     }
 

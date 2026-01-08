@@ -163,7 +163,7 @@ void init_matrices( std::string type, int32_t seed, const int32_t m, const int32
         init_test1_matrices( seed, m, n, k, A, lda, B, ldb );
     }
     else if ( type == "test3" ){
-        static_assert( std::is_same<T, double>::value, "test3 matrices are only implemented for double precision." );
+        // static_assert( std::is_same<T, double>::value, "test3 matrices are only implemented for double precision." );
         assert( m == n && n == k && "test3 matrices are only implemented for square matrices.");
         init_test3_matrices_fp64( seed, m, A, lda, B, ldb );
     }
