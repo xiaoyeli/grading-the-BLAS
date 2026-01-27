@@ -171,8 +171,7 @@ void init_matrices( std::string type, int32_t seed, const int32_t m, const int32
         init_sanity_matrices(  m, n, k, A, lda, B, ldb );
     }
     else{
-        // default to U(0,1)
-        init_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
+        assert(false && "Unknown matrix type specified in init_matrices." );
     }
 
     return;
