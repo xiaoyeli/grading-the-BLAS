@@ -32,6 +32,19 @@ void copy_matrix(  const int32_t m, const int32_t n, T_to *A, const int32_t lda,
 }
 
 template <typename T>
+void abs_matrix(  const int32_t m, const int32_t n, T *A, const int32_t lda){
+    
+    int32_t i, j;
+    for ( i = 0; i < m; ++i ){
+        for ( j = 0; j < n; ++j ){
+            A[i + j*lda] = abs(A[i + j*lda]);
+        }
+    }
+
+    return;
+}
+
+template <typename T>
 void print_matrix_to_stdout_hex( const int32_t m, const int32_t n, const T *A, const int32_t lda ){
     int32_t i, j;
 

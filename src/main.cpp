@@ -51,7 +51,7 @@ int main(){
 #ifdef SANITY
     min_dim = max_dim = 4;
 #else
-    max_dim = 2048;
+    max_dim = 1024;
     min_dim = 32;
 #endif
     max_m = max_k = max_n = lda = ldb = ldc = max_dim;
@@ -68,12 +68,17 @@ int main(){
 #endif
     vector<string> matrix_types;
 #ifdef SANITY
+    matrix_types.push_back("sanity");
 #else
-    // matrix_types.push_back("sanity");
+    // matrix_types.push_back("U_0_1");
+    // matrix_types.push_back("U_-1_1");
+
     matrix_types.push_back("test1");
     matrix_types.push_back("test3");
-    matrix_types.push_back("U_0_1");
-    matrix_types.push_back("U_-1_1");
+
+    matrix_types.push_back("jim_test3a");
+    matrix_types.push_back("jim_test3b");
+    matrix_types.push_back("jim_test3c");
 #endif
     for ( const string& matrix_type : matrix_types ){
         for ( int32_t dim = min_dim; dim <= max_dim; dim = 2*dim ){
@@ -105,6 +110,14 @@ int main(){
             init_zero_matrix(m, n, &C_ext[0], ldc);
             ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
             write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, DGEMM_IMPL, matrix_type, m, n, seed);
+
+            abs_matrix(m, k, &A_ext[0], lda);
+            abs_matrix(m, k, &B_ext[0], ldb);
+            init_zero_matrix(m, n, &C_ext[0], ldc);
+            ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
+            string new_name = "ABS_A_AND_B_";
+            new_name = new_name + DGEMM_IMPL;
+            write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, new_name, matrix_type, m, n, seed);
 #else
             init_zero_matrix(m, n, &C[0], ldc);
 #ifdef CUDA
