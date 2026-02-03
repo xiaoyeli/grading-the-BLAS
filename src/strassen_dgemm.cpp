@@ -1,6 +1,9 @@
 
 #include <stdint.h>
 #include <vector>
+#include <cassert>
+
+#define BASECASE_SIZE 2
 
 extern "C" {
     void dgemm_(const char* TRANSA, const char* TRANSB,
@@ -55,13 +58,15 @@ void dgemm_(const char* transa, const char* transb,
                 const double* beta,
                 double* C, const int* ldc){
     
-    // do a naive matmul if the dimensions of the operands don't match or are not evenly divisible by 2
-    if ( (*m != *k) || (*k != *n) || (*m != *n) || ( *m % 2 == 1 ) ){
+    assert((*m == *k) && (*k == *n) && (*m == *n) && ( *m % 2 == 0 ) && "Strassen DGEMM only implemented for square matrices whose dimensions are a power of 2");
+
+    // base case
+    if ( *m <= BASECASE_SIZE ){
         naive_gemm( A, *lda, B, *ldb, *m, *k, *n, C, *ldc );
         return;
     }
 
-    int32_t half_dim = *m / 2;
+    const int half_dim = *m / 2;
     std::vector<double> buffer1( half_dim * half_dim );
     std::vector<double> buffer2( half_dim * half_dim );
     std::vector<double> M1( half_dim * half_dim );
@@ -74,27 +79,27 @@ void dgemm_(const char* transa, const char* transb,
     
     add_matrix( &A[0], *lda, &A[half_dim + half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A11 + A22
     add_matrix( &B[0], *ldb, &B[half_dim + half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B11 + B22
-    naive_gemm( &buffer1[0], half_dim, &buffer2[0], half_dim, half_dim, half_dim, half_dim, &M1[0], half_dim ); // M1 = buffer1 * buffer2
+    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M1[0], &half_dim ); // M1 = buffer1 * buffer2
     
     add_matrix( &A[half_dim], *lda, &A[half_dim + half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A21 + A22
-    naive_gemm( &buffer1[0], half_dim, &B[0], *ldb, half_dim, half_dim, half_dim, &M2[0], half_dim ); // M2 = buffer1 * B11
+    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &B[0], ldb, beta, &M2[0], &half_dim ); // M2 = buffer1 * B11
 
     sub_matrix( &B[half_dim**ldb], *ldb, &B[half_dim + half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B12 - B22
-    naive_gemm( &A[0], *lda, &buffer2[0], half_dim, half_dim, half_dim, half_dim, &M3[0], half_dim ); // M3 = A11 * buffer2
+    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &A[0], lda, &buffer2[0], &half_dim, beta, &M3[0], &half_dim ); // M3 = A11 * buffer2
 
     sub_matrix( &B[half_dim], *ldb, &B[0], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B21 - B11
-    naive_gemm( &A[half_dim + half_dim**lda], *lda, &buffer2[0], half_dim, half_dim, half_dim, half_dim, &M4[0], half_dim ); // M4 = A22 * buffer2
+    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &A[half_dim + half_dim**lda], lda, &buffer2[0], &half_dim, beta, &M4[0], &half_dim ); // M4 = A22 * buffer2
     
     add_matrix( &A[0], *lda, &A[half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A11 + A12
-    naive_gemm( &buffer1[0], half_dim, &B[half_dim + half_dim**ldb], *ldb, half_dim, half_dim, half_dim, &M5[0], half_dim ); // M5 = buffer1 * B22
+    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &B[half_dim + half_dim**ldb], ldb, beta, &M5[0], &half_dim ); // M5 = buffer1 * B22
 
     sub_matrix( &A[half_dim], *lda, &A[0], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A21 - A11
     add_matrix( &B[0], *ldb, &B[half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B11 + B12
-    naive_gemm( &buffer1[0], half_dim, &buffer2[0], half_dim, half_dim, half_dim, half_dim, &M6[0], half_dim ); // M6 = buffer1 * buffer2
+    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M6[0], &half_dim ); // M6 = buffer1 * buffer2
 
     sub_matrix( &A[half_dim**lda], *lda, &A[half_dim + half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A12 - A22
     add_matrix( &B[half_dim], *ldb, &B[half_dim + half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B21 + B22
-    naive_gemm( &buffer1[0], half_dim, &buffer2[0], half_dim, half_dim, half_dim, half_dim, &M7[0], half_dim ); // M7 = buffer1 * buffer2
+    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M7[0], &half_dim ); // M7 = buffer1 * buffer2
 
     // C11
     add_matrix( &M1[0], half_dim, &M4[0], half_dim, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = M1 + M4
