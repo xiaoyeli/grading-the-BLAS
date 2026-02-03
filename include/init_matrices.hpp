@@ -154,7 +154,7 @@ void init_test3_matrices_fp64( int32_t seed, const int32_t dim, double *A, const
 void init_jim_test3a_matrices_fp64( int32_t seed, const int32_t dim, double *A, const int32_t lda, double *B, const int32_t ldb ){
 
     int32_t i, j;
-    int32_t max_exponent = 40;
+    double max_exponent = 40.0;
     std::vector<double> x(dim);
 
     std::mt19937 gen(seed);
