@@ -39,7 +39,9 @@ extern "C" {
 
 int main(){
 
+#ifndef DRYRUN
     H5File h5_file = init_hdf5(HDF5_FILENAME);
+#endif
 
     char transpose = 'N';
     double alpha = 1.0;
@@ -48,12 +50,8 @@ int main(){
     int32_t max_m, max_k, max_n, lda, ldb, ldc;
     int32_t min_dim, max_dim;
 
-#ifdef SANITY
-    min_dim = max_dim = 4;
-#else
     max_dim = 1024;
     min_dim = 32;
-#endif
     max_m = max_k = max_n = lda = ldb = ldc = max_dim;
 
     vector<double> A(max_m*max_k);
@@ -67,11 +65,9 @@ int main(){
     vector<long double> C_ext(max_m*max_n);
 #endif
     vector<string> matrix_types;
-#ifdef SANITY
-    matrix_types.push_back("sanity");
-#else
-    // matrix_types.push_back("U_0_1");
-    // matrix_types.push_back("U_-1_1");
+
+    matrix_types.push_back("U_0_1");
+    matrix_types.push_back("U_-1_1");
 
     matrix_types.push_back("test1");
     matrix_types.push_back("test3");
@@ -79,7 +75,7 @@ int main(){
     matrix_types.push_back("jim_test3a");
     matrix_types.push_back("jim_test3b");
     matrix_types.push_back("jim_test3c");
-#endif
+
     for ( const string& matrix_type : matrix_types ){
         for ( int32_t dim = min_dim; dim <= max_dim; dim = 2*dim ){
             
@@ -93,8 +89,10 @@ int main(){
             int32_t seed = 0;
 #endif
             init_matrices(matrix_type, seed, m, n, k, &A[0], lda, &B[0], ldb);
+#ifndef DRYRUN
             write_matrix_to_hdf5(h5_file, &A[0], lda, "A", matrix_type, m, k, seed);
             write_matrix_to_hdf5(h5_file, &B[0], ldb, "B", matrix_type, k, n, seed);
+#endif
 #ifdef VERBOSE
             printf("A matrix:\n");
             print_matrix_to_stdout_dec(m, k, &A[0], lda);
@@ -109,15 +107,18 @@ int main(){
             copy_matrix(m, k, &B_ext[0], ldb, &B[0], ldb);
             init_zero_matrix(m, n, &C_ext[0], ldc);
             ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
+#ifndef DRYRUN
             write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, DGEMM_IMPL, matrix_type, m, n, seed);
-
+#endif
             abs_matrix(m, k, &A_ext[0], lda);
             abs_matrix(m, k, &B_ext[0], ldb);
             init_zero_matrix(m, n, &C_ext[0], ldc);
             ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
+#ifndef DRYRUN
             string new_name = "ABS_A_AND_B_";
             new_name = new_name + DGEMM_IMPL;
             write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, new_name, matrix_type, m, n, seed);
+#endif
 #else
             init_zero_matrix(m, n, &C[0], ldc);
 #ifdef CUDA
@@ -129,12 +130,14 @@ int main(){
             printf("C matrix:\n");
             print_matrix_to_stdout_dec(m, n, &C[0], ldc);
 #endif
+#ifndef DRYRUN
             write_matrix_to_hdf5(h5_file, &C[0], ldc, DGEMM_IMPL, matrix_type, m, n, seed);
+#endif
 #endif
         }
     }
-
+#ifndef DRYRUN
     H5Fclose(h5_file.getId());
-
+#endif
     return 0;
 }

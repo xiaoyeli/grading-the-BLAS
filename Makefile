@@ -42,6 +42,11 @@ ifeq ($(STOCHASTIC),1)
 	CXXFLAGS += -DSTOCHASTIC
 endif
 
+# Dryrun
+ifeq ($(DRYRUN),1)
+	CXXFLAGS += -DDRYRUN
+endif
+
 # Debug
 ifeq ($(DEBUG),1)
 	CXXFLAGS += -g
