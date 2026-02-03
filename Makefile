@@ -8,7 +8,7 @@ DGEMM_IMPLEMENTATIONS += BLIS
 DGEMM_IMPLEMENTATIONS += OPENBLAS
 DGEMM_IMPLEMENTATIONS += CUBLAS
 DGEMM_IMPLEMENTATIONS += OZIMMU
-DGEMM_IMPLEMENTATIONS += STRASSEN_1LVL
+DGEMM_IMPLEMENTATIONS += STRASSEN
 DGEMM_IMPLEMENTATIONS += NAIVE_TRIPLE_LOOP_FP64
 DGEMM_IMPLEMENTATIONS += NAIVE_TRIPLE_LOOP_EXTENDED_PRECISION
 
@@ -49,7 +49,7 @@ endif
 
 # Outputs
 MAIN_EXE     := main
-STRASSEN_1LVL_SO  := libstrassen_1lvl_dgemm.so
+STRASSEN_SO  := libstrassen_dgemm.so
 NAIVE_TRIPLE_LOOP_SO := libnaive_triple_loop_gemm.so
 
 ########################################
@@ -108,14 +108,15 @@ ifeq ($(DGEMM_IMPL),OPENBLAS)
     RUN_PREFIX :=
 endif
 
-ifeq ($(DGEMM_IMPL),STRASSEN_1LVL)
-	VERSION_STR = 649b52d
+ifeq ($(DGEMM_IMPL),STRASSEN)
+	VERSION_STR = 57e69bd
 	COMPILER_STR = GNU_13.2
 	FLAG_STR = O0
-	DGEMM_IMPL_STR := $(DGEMM_IMPL)-$(VERSION_STR)-$(COMPILER_STR)-$(FLAG_STR)-$(ARCH_STR)
+	ADDTL_PARAMS = BASECASE_2
+	DGEMM_IMPL_STR := $(DGEMM_IMPL)_$(ADDTL_PARAMS)-$(VERSION_STR)-$(COMPILER_STR)-$(FLAG_STR)-$(ARCH_STR)
 	CXXFLAGS += -DDGEMM_IMPL=\"$(DGEMM_IMPL_STR)\"
 
-    LDFLAGS += -L$(LIB_DIR) -lstrassen_1lvl_dgemm
+    LDFLAGS += -L$(LIB_DIR) -lstrassen_dgemm
     RUN_PREFIX := LD_LIBRARY_PATH=$(LD_LIBRARY_PATH):$(LIB_DIR)
 endif
 
@@ -163,9 +164,9 @@ ifeq ($(DGEMM_IMPL),OZIMMU)
 endif
 ########################################
 
-all: dirs $(LIB_DIR)/$(STRASSEN_1LVL_SO) $(LIB_DIR)/$(NAIVE_TRIPLE_LOOP_SO) $(MAIN_EXE)
+all: dirs $(LIB_DIR)/$(STRASSEN_SO) $(LIB_DIR)/$(NAIVE_TRIPLE_LOOP_SO) $(MAIN_EXE)
 
-$(LIB_DIR)/$(STRASSEN_1LVL_SO): $(SRC_DIR)/strassen_1lvl_dgemm.cpp
+$(LIB_DIR)/$(STRASSEN_SO): $(SRC_DIR)/strassen_dgemm.cpp
 	g++ -O0 -fPIC -shared -Iinclude $< -o $@
 
 $(LIB_DIR)/$(NAIVE_TRIPLE_LOOP_SO): $(SRC_DIR)/naive_triple_loop_gemm.cpp
