@@ -66,15 +66,18 @@ int main(){
 #endif
     vector<string> matrix_types;
 
-    matrix_types.push_back("U_0_1");
-    matrix_types.push_back("U_-1_1");
+    matrix_types.push_back("U(0,1)");
+    matrix_types.push_back("U(-1,1)");
 
-    matrix_types.push_back("test1");
+    matrix_types.push_back("test1a");
+    matrix_types.push_back("test1b");
+    matrix_types.push_back("test1c");
+    
+    matrix_types.push_back("test2a");
+    matrix_types.push_back("test2b");
+    matrix_types.push_back("test2c");
+    
     matrix_types.push_back("test3");
-
-    matrix_types.push_back("jim_test3a");
-    matrix_types.push_back("jim_test3b");
-    matrix_types.push_back("jim_test3c");
 
     for ( const string& matrix_type : matrix_types ){
         for ( int32_t dim = min_dim; dim <= max_dim; dim = 2*dim ){
@@ -95,9 +98,9 @@ int main(){
 #endif
 #ifdef VERBOSE
             printf("A matrix:\n");
-            print_matrix_to_stdout_dec(m, k, &A[0], lda);
+            print_matrix_to_stdout_sci(m, k, &A[0], lda);
             printf("B matrix:\n");
-            print_matrix_to_stdout_dec(k, n, &B[0], ldb);
+            print_matrix_to_stdout_sci(k, n, &B[0], ldb);
 #endif
             // call DGEMM
 #ifdef EXTENDED_PRECISION_REFERENCE
@@ -128,7 +131,7 @@ int main(){
 #endif
 #ifdef VERBOSE
             printf("C matrix:\n");
-            print_matrix_to_stdout_dec(m, n, &C[0], ldc);
+            print_matrix_to_stdout_sci(m, n, &C[0], ldc);
 #endif
 #ifndef DRYRUN
             write_matrix_to_hdf5(h5_file, &C[0], ldc, DGEMM_IMPL, matrix_type, m, n, seed);

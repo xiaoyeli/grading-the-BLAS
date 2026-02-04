@@ -60,12 +60,12 @@ void print_matrix_to_stdout_hex( const int32_t m, const int32_t n, const T *A, c
 }
 
 template <typename T>
-void print_matrix_to_stdout_dec( const int32_t m, const int32_t n, const T *A, const int32_t lda ){
+void print_matrix_to_stdout_sci( const int32_t m, const int32_t n, const T *A, const int32_t lda ){
     int32_t i, j;
 
     for ( i = 0; i < m; ++i ){
         for ( j = 0; j < n; ++j ){
-            printf("%f ", A[i+j*lda]);
+            printf("%E ", A[i+j*lda]);
         }
         printf("\n");
     }
