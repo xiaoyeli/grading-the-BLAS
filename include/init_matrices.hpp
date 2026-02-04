@@ -1,7 +1,6 @@
 #ifndef INIT_MATRICES_HPP
 #define INIT_MATRICES_HPP
 
-#include <stdint.h>
 #include <random>
 #include <algorithm>
 #include <vector>
@@ -17,12 +16,10 @@
 #define EXP_NEAR_OVERFLOW 1020
 
 template <typename T>
-void init_zero_matrix( const int32_t m, const int32_t n, T *A, const int32_t lda ){
+void init_zero_matrix( const int m, const int n, T *A, const int lda ){
 
-    int32_t i, j;
-
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
             A[i + j*lda] = 0.0;
         }
     }
@@ -30,19 +27,17 @@ void init_zero_matrix( const int32_t m, const int32_t n, T *A, const int32_t lda
 }
 
 template <typename T>
-void init_sanity_matrices( const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
-
-    int32_t i, j;
+void init_sanity_matrices( const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
 
     // initialize matrices
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < k; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < k; ++j ){
             A[i + j*lda] = i + j*lda;
         }
     }
 
-    for ( i = 0; i < k; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < k; ++i ){
+        for ( int j = 0; j < n; ++j ){
             B[i + j*ldb] = 1 + i + j*ldb;
         }
     }  
@@ -51,21 +46,20 @@ void init_sanity_matrices( const int32_t m, const int32_t n, const int32_t k, T 
 }
 
 template <typename T>
-void init_uniform_random_matrices(  const T lower_bound, const T upper_bound, int32_t seed, const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
+void init_uniform_random_matrices(  const T lower_bound, const T upper_bound, int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
     
     std::mt19937 gen(seed);
     std::uniform_real_distribution<T> generator(lower_bound, upper_bound);
-    int32_t i, j;
 
     // initialize matrices
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < k; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < k; ++j ){
             A[i + j*lda] = generator(gen);
         }
     }
 
-    for ( i = 0; i < k; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < k; ++i ){
+        for ( int j = 0; j < n; ++j ){
             B[i + j*ldb] = generator(gen);
         }
     }  
@@ -74,21 +68,20 @@ void init_uniform_random_matrices(  const T lower_bound, const T upper_bound, in
 }
 
 template <typename T>
-void init_guassian_random_matrices(  const T mean, const T std, int32_t seed, const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
+void init_guassian_random_matrices(  const T mean, const T std, int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
     
     std::mt19937 gen(seed);
     std::normal_distribution<T> generator(mean, std);
-    int32_t i, j;
 
     // initialize matrices
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < k; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < k; ++j ){
             A[i + j*lda] = generator(gen);
         }
     }
 
-    for ( i = 0; i < k; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < k; ++i ){
+        for ( int j = 0; j < n; ++j ){
             B[i + j*ldb] = generator(gen);
         }
     }  
@@ -97,7 +90,7 @@ void init_guassian_random_matrices(  const T mean, const T std, int32_t seed, co
 }
 
 template <typename T>
-void init_test1a_matrices( int32_t seed, const int32_t dim, T *A, const int32_t lda, T *B, const int32_t ldb ){
+void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -105,7 +98,7 @@ void init_test1a_matrices( int32_t seed, const int32_t dim, T *A, const int32_t 
     std::mt19937 gen(seed);
     std::vector<bool> zero_rows_mask_A(dim);
     std::vector<bool> zero_cols_mask_B(dim);
-    int32_t n_zero = std::max(1, (int)(TEST1A_RATIO*dim));
+    int n_zero = std::max(1, (int)(TEST1A_RATIO*dim));
     
     for ( int i = 0; i < n_zero; ++i ){
         zero_rows_mask_A[i] = true;
@@ -135,7 +128,7 @@ void init_test1a_matrices( int32_t seed, const int32_t dim, T *A, const int32_t 
 }
 
 template <typename T>
-void init_test1b_matrices( int32_t seed, const int32_t dim, T *A, const int32_t lda, T *B, const int32_t ldb ){
+void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -144,8 +137,8 @@ void init_test1b_matrices( int32_t seed, const int32_t dim, T *A, const int32_t 
     std::vector<int> target_rows_idx_A;
     std::vector<int> target_cols_idx_B;
     std::vector<bool> sparsity_mask_A(dim);
-    int32_t n_targeted_rows_and_cols = std::max(1, (int)(TEST1B_RATIO_1*dim));
-    int32_t n_zeros_in_A_rows = std::max(1, (int)(TEST1B_RATIO_2*dim));
+    int n_targeted_rows_and_cols = std::max(1, (int)(TEST1B_RATIO_1*dim));
+    int n_zeros_in_A_rows = std::max(1, (int)(TEST1B_RATIO_2*dim));
 
     for ( int i = 0; i < dim; ++i ){
         target_rows_mask_A[i] = false;
@@ -193,7 +186,7 @@ void init_test1b_matrices( int32_t seed, const int32_t dim, T *A, const int32_t 
 }
 
 template <typename T>
-void init_test1c_matrices( int32_t seed, const int32_t dim, T *A, const int32_t lda, T *B, const int32_t ldb ){
+void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -203,10 +196,10 @@ void init_test1c_matrices( int32_t seed, const int32_t dim, T *A, const int32_t 
     std::vector<int> target_cols_idx_B;
     std::vector<bool> sparsity_mask_A(dim);
     std::vector<bool> nonzero_mask(dim);
-    int32_t n_targeted_rows_and_cols = std::max(1, (int)(TEST1C_RATIO_1*dim));
+    int n_targeted_rows_and_cols = std::max(1, (int)(TEST1C_RATIO_1*dim));
     std::vector<bool> target_rows_cols_with_nonzero_mask(n_targeted_rows_and_cols);
-    int32_t n_zeros_in_A_rows = std::max(1, (int)(TEST1C_RATIO_2*dim));
-    int32_t n_targeted_rows_and_cols_w_a_nonzero = std::max(1, (int)(TEST1C_RATIO_3*n_targeted_rows_and_cols));
+    int n_zeros_in_A_rows = std::max(1, (int)(TEST1C_RATIO_2*dim));
+    int n_targeted_rows_and_cols_w_a_nonzero = std::max(1, (int)(TEST1C_RATIO_3*n_targeted_rows_and_cols));
 
     for ( int i = 0; i < dim; ++i ){
         target_rows_mask_A[i] = false;
@@ -266,7 +259,7 @@ void init_test1c_matrices( int32_t seed, const int32_t dim, T *A, const int32_t 
     return;
 }
 
-void init_test2a_matrices( int32_t seed, const int32_t dim, double *A, const int32_t lda, double *B, const int32_t ldb, double max_exponent ){
+void init_test2a_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
 
     std::vector<double> x(dim);
 
@@ -297,7 +290,7 @@ void init_test2a_matrices( int32_t seed, const int32_t dim, double *A, const int
     }
 }
 
-void init_test2b_matrices( int32_t seed, const int32_t dim, double *A, const int32_t lda, double *B, const int32_t ldb, double max_exponent ){
+void init_test2b_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
 
     init_test2a_matrices(seed, dim, A, lda, B, ldb, max_exponent);
 
@@ -314,14 +307,14 @@ void init_test2b_matrices( int32_t seed, const int32_t dim, double *A, const int
     }
 }
 
-void init_test2c_matrices( int32_t seed, const int32_t dim, double *A, const int32_t lda, double *B, const int32_t ldb, double max_exponent ){
+void init_test2c_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
 
     std::vector<double> unpermuted_A(dim * dim);
     std::vector<double> unpermuted_B(dim * dim);
 
     init_test2b_matrices(seed, dim, &unpermuted_A[0], dim, &unpermuted_B[0], dim, max_exponent);
 
-    std::vector<uint32_t> p(dim);
+    std::vector<uint> p(dim);
     
     for ( int i = 0; i < dim; ++i ){
         p[i] = i;
@@ -345,7 +338,7 @@ void init_test2c_matrices( int32_t seed, const int32_t dim, double *A, const int
     }
 }
 
-void init_test3_matrices( int32_t seed, const int32_t dim, double *A, const int32_t lda, double *B, const int32_t ldb, double max_exponent ){
+void init_test3_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
 
     std::mt19937 gen(seed);
     std::uniform_real_distribution<double> generator(1.0, 2.0);
@@ -369,7 +362,7 @@ void init_test3_matrices( int32_t seed, const int32_t dim, double *A, const int3
 }
 
 template <typename T>
-void init_matrices( std::string type, int32_t seed, const int32_t m, const int32_t n, const int32_t k, T *A, const int32_t lda, T *B, const int32_t ldb ){
+void init_matrices( std::string type, int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
     
     if ( type == "sanity" ){
         init_sanity_matrices(  m, n, k, A, lda, B, ldb );

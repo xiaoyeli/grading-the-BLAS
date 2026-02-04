@@ -1,7 +1,6 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
-#include <stdint.h>
 #include <H5Cpp.h>
 
 #define METADATA_STR_LEN 128
@@ -10,20 +9,19 @@ using namespace H5;
 using namespace std;
 
 struct GEMM_Metadata {
-    int32_t matrix_id;
+    int matrix_id;
     char matrix_name[METADATA_STR_LEN];
     char input_type[METADATA_STR_LEN];
-    int32_t m;
-    int32_t n;
-    int32_t seed;
+    int m;
+    int n;
+    int seed;
 };
 
 template <typename T_to, typename T_from>
-void copy_matrix(  const int32_t m, const int32_t n, T_to *A, const int32_t lda, const T_from *B, const int32_t ldb){
+void copy_matrix(  const int m, const int n, T_to *A, const int lda, const T_from *B, const int ldb){
     
-    int32_t i, j;
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
             A[i + j*lda] = B[i + j*ldb];
         }
     }
@@ -32,11 +30,10 @@ void copy_matrix(  const int32_t m, const int32_t n, T_to *A, const int32_t lda,
 }
 
 template <typename T>
-void abs_matrix(  const int32_t m, const int32_t n, T *A, const int32_t lda){
+void abs_matrix(  const int m, const int n, T *A, const int lda){
     
-    int32_t i, j;
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
             A[i + j*lda] = abs(A[i + j*lda]);
         }
     }
@@ -45,11 +42,10 @@ void abs_matrix(  const int32_t m, const int32_t n, T *A, const int32_t lda){
 }
 
 template <typename T>
-void print_matrix_to_stdout_hex( const int32_t m, const int32_t n, const T *A, const int32_t lda ){
-    int32_t i, j;
+void print_matrix_to_stdout_hex( const int m, const int n, const T *A, const int lda ){
 
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
             printf("%a ", A[i+j*lda]);
         }
         printf("\n");
@@ -60,11 +56,10 @@ void print_matrix_to_stdout_hex( const int32_t m, const int32_t n, const T *A, c
 }
 
 template <typename T>
-void print_matrix_to_stdout_sci( const int32_t m, const int32_t n, const T *A, const int32_t lda ){
-    int32_t i, j;
+void print_matrix_to_stdout_sci( const int m, const int n, const T *A, const int lda ){
 
-    for ( i = 0; i < m; ++i ){
-        for ( j = 0; j < n; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
             printf("%E ", A[i+j*lda]);
         }
         printf("\n");
@@ -145,18 +140,18 @@ H5File init_hdf5( string filename ){
     return h5_file;
 }
 
-int32_t construct_matrix_id( string matrix_name, string input_type, int32_t m, int32_t n, int32_t seed ){
+int construct_matrix_id( string matrix_name, string input_type, int m, int n, int seed ){
     string id_str = matrix_name + "_" + input_type + "_" + to_string(m) + "m_" + to_string(n) + "n_" + to_string(seed);
     std::hash<string> hasher;
-    return static_cast<int32_t>( hasher(id_str) );
+    return static_cast<int>( hasher(id_str) );
 }
 
 template <typename T>
-void write_matrix_to_hdf5( H5File& h5_file, T *A, const int32_t lda, string matrix_name, string input_type, int32_t m, int32_t n, int32_t seed ){
+void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_name, string input_type, int m, int n, int seed ){
     
     string matrices_group_name = "matrices";
     Group matrices_group = h5_file.openGroup(matrices_group_name);
-    int32_t matrix_id = construct_matrix_id(matrix_name, input_type, m, n, seed);
+    int matrix_id = construct_matrix_id(matrix_name, input_type, m, n, seed);
     string matrix_id_name = to_string(matrix_id);
     if (H5Lexists(matrices_group.getId(), matrix_id_name.c_str(), H5P_DEFAULT) ){
         return;
@@ -174,7 +169,7 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int32_t lda, string matr
 #else
     DataSet dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_DOUBLE, A_file_space, plist);
 #endif
-    for ( int32_t j = 0; j < n; ++j ){
+    for ( int j = 0; j < n; ++j ){
         hsize_t count[2] = { (hsize_t)n, 1 };
         hsize_t start[2] = { 0, (hsize_t)j };
         A_file_space.selectHyperslab( H5S_SELECT_SET, count, start );

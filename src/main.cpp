@@ -1,19 +1,35 @@
 #include "init_matrices.hpp"
 #include "utils.hpp"
-#include "cublas_gemm_wrapper.hpp"
-#include <stdio.h>
-#include <stdint.h>
-#include <fstream>
 #include <vector>
-#include <ctime>
-#include <iomanip>
 #include <random>
+
+#ifdef CUDA
+#include "cublas_gemm_wrapper.hpp"
+#endif
+
+#ifndef DRYRUN
 #include <H5Cpp.h>
+#endif
+
+#ifdef STOCHASTIC
+#include <ctime>
+#endif
+
+#ifdef VERBOSE
+#include <stdio.h>
+#endif
+
+#define HDF5_FILENAME "grading_dgemm.h5"
+
+#ifndef DGEMM_IMPL
+#define DGEMM_IMPL "unknown"
+#endif
+
+#define MAX_DIM 1024
+#define MIN_DIM 32
 
 using namespace std;
 using namespace H5;
-
-#define HDF5_FILENAME "grading_dgemm.h5"
 
 extern "C" {
     void dgemm_(const char* TRANSA, const char* TRANSB,
@@ -33,10 +49,6 @@ extern "C" {
                 long double* C, const int* LDC);
 }
 
-#ifndef DGEMM_IMPL
-#define DGEMM_IMPL "unknown"
-#endif
-
 int main(){
 
 #ifndef DRYRUN
@@ -47,12 +59,8 @@ int main(){
     double alpha = 1.0;
     double beta = 0.0;
 
-    int32_t max_m, max_k, max_n, lda, ldb, ldc;
-    int32_t min_dim, max_dim;
-
-    max_dim = 1024;
-    min_dim = 32;
-    max_m = max_k = max_n = lda = ldb = ldc = max_dim;
+    int max_m, max_k, max_n, lda, ldb, ldc;
+    max_m = max_k = max_n = lda = ldb = ldc = MAX_DIM;
 
     vector<double> A(max_m*max_k);
     vector<double> B(max_k*max_n);
@@ -80,16 +88,16 @@ int main(){
     matrix_types.push_back("test3");
 
     for ( const string& matrix_type : matrix_types ){
-        for ( int32_t dim = min_dim; dim <= max_dim; dim = 2*dim ){
+        for ( int dim = MIN_DIM; dim <= MAX_DIM; dim = 2*dim ){
             
-            int32_t m, n, k;
+            int m, n, k;
             m = n = k = dim;
 
             // initialize A and B matrices
 #ifdef STOCHASTIC
-            int32_t seed = time(nullptr);
+            int seed = time(nullptr);
 #else
-            int32_t seed = 0;
+            int seed = 0;
 #endif
             init_matrices(matrix_type, seed, m, n, k, &A[0], lda, &B[0], ldb);
 #ifndef DRYRUN

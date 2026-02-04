@@ -1,5 +1,3 @@
-
-#include <stdint.h>
 #include <vector>
 #include <cassert>
 
@@ -15,10 +13,10 @@ extern "C" {
                 double* C, const int* LDC);
 }
 
-void add_matrix( const double *A, const int32_t lda, const double *B, const int32_t ldb, double *C, const int32_t ldc, const int32_t m, const int32_t n ){
+void add_matrix( const double *A, const int lda, const double *B, const int ldb, double *C, const int ldc, const int m, const int n ){
 
-    for ( int32_t i = 0; i < m; ++i ){
-        for ( int32_t j = 0; j < n; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
             C[i + j*ldc] = A[i + j*lda] + B[i + j*ldb];
         }
     }
@@ -26,10 +24,10 @@ void add_matrix( const double *A, const int32_t lda, const double *B, const int3
     return;
 }
 
-void sub_matrix( const double *A, const int32_t lda, const double *B, const int32_t ldb, double *C, const int32_t ldc, const int32_t m, const int32_t n ){
+void sub_matrix( const double *A, const int lda, const double *B, const int ldb, double *C, const int ldc, const int m, const int n ){
 
-    for ( int32_t i = 0; i < m; ++i ){
-        for ( int32_t j = 0; j < n; ++j ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
             C[i + j*ldc] = A[i + j*lda] - B[i + j*ldb];
         }
     }
@@ -37,11 +35,11 @@ void sub_matrix( const double *A, const int32_t lda, const double *B, const int3
     return;
 }
 
-void naive_gemm( const double *A, const int32_t lda, const double *B, const int32_t ldb, const int32_t m, const int32_t k, const int32_t n, double *C, const int32_t ldc ){
+void naive_gemm( const double *A, const int lda, const double *B, const int ldb, const int m, const int k, const int n, double *C, const int ldc ){
 
-    for ( int32_t i = 0; i < m; ++i ){
-        for ( int32_t j = 0; j < n; ++j ){
-            for ( int32_t p = 0; p < k; ++p ){
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < n; ++j ){
+            for ( int p = 0; p < k; ++p ){
                 C[i + j*ldc] = A[i + p*lda] * B[p + j*ldb] + C[i + j*ldc];
             }
         }

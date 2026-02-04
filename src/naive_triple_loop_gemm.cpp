@@ -1,5 +1,3 @@
-#include <stdint.h>
-
 extern "C" {
     void dgemm_(const char* TRANSA, const char* TRANSB,
                 const int* M, const int* N, const int* K,
@@ -26,9 +24,9 @@ void dgemm_(const char* transa, const char* transb,
                 const double* beta,
                 double* C, const int* ldc){
 
-    for ( int32_t i = 0; i < *m; ++i ){
-        for ( int32_t j = 0; j < *n; ++j ){
-            for ( int32_t p = 0; p < *k; ++p ){
+    for ( int i = 0; i < *m; ++i ){
+        for ( int j = 0; j < *n; ++j ){
+            for ( int p = 0; p < *k; ++p ){
                 C[i + j*(*ldc)] = A[i + p*(*lda)] * B[p + j*(*ldb)] + C[i + j*(*ldc)];
             }
         }
@@ -43,9 +41,9 @@ void ldgemm_(const char* transa, const char* transb,
                 const long double* beta,
                 long double* C, const int* ldc){
 
-    for ( int32_t i = 0; i < *m; ++i ){
-        for ( int32_t j = 0; j < *n; ++j ){
-            for ( int32_t p = 0; p < *k; ++p ){
+    for ( int i = 0; i < *m; ++i ){
+        for ( int j = 0; j < *n; ++j ){
+            for ( int p = 0; p < *k; ++p ){
                 C[i + j*(*ldc)] = A[i + p*(*lda)] * B[p + j*(*ldb)] + C[i + j*(*ldc)];
             }
         }
