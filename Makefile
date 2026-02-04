@@ -30,10 +30,8 @@ else
 	CXX := g++
 endif
 
-# Sanity/Verbosity
-ifeq ($(SANITY),1)
-	CXXFLAGS += -DSANITY -DVERBOSE
-else ifeq ($(VERBOSE),1)
+# Verbosity
+ifeq ($(VERBOSE),1)
 	CXXFLAGS += -DVERBOSE
 endif
 
