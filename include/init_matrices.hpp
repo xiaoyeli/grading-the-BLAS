@@ -373,9 +373,12 @@ void init_matrices( std::string type, int seed, const int m, const int n, const 
     else if ( type == "U(-1,1)" ){
         init_uniform_random_matrices( static_cast<T>(-1.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
     }
+    else if ( type == "U(1,2)" ){
+        init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, m, n, k, A, lda, B, ldb );
+    }
     else{
         assert( m == n && n == k && "test matrices must be square.");
-        assert( seed == 0 && "test1 matrices must be deterministically generated" );
+        assert( seed == 0 && "test matrices must be deterministically generated" );
 
         if ( type == "test1a" ){
             init_test1a_matrices( seed, m, A, lda, B, ldb );
