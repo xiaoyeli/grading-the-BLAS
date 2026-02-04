@@ -350,8 +350,13 @@ void init_test3_matrices( int seed, const int dim, double *A, const int lda, dou
         diag_D2[i] = diag_D1[i];
     }
 
-    std::shuffle(diag_D1.begin(), diag_D1.end(), gen);
-    std::shuffle(diag_D2.begin(), diag_D2.end(), gen);
+    for ( int i = 0; i < dim; i = i + 2 ){
+        std::swap(diag_D1[i], diag_D1[dim - 1 - i]);
+        std::swap(diag_D2[i], diag_D2[dim - 1 - i]);
+    }
+
+    // std::shuffle(diag_D1.begin(), diag_D1.end(), gen);
+    // std::shuffle(diag_D2.begin(), diag_D2.end(), gen);
 
     for ( int i = 0; i < dim; ++i ){
         for ( int j = 0; j < dim; ++j ){
