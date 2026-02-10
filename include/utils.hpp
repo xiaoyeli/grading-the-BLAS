@@ -18,7 +18,7 @@ struct GEMM_Metadata {
 };
 
 template <typename T_to, typename T_from>
-void copy_matrix(  const int m, const int n, T_to *A, const int lda, const T_from *B, const int ldb){
+void copy_matrix( const int m, const int n, T_to *A, const int lda, const T_from *B, const int ldb ){
     
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
@@ -30,7 +30,7 @@ void copy_matrix(  const int m, const int n, T_to *A, const int lda, const T_fro
 }
 
 template <typename T>
-void abs_matrix(  const int m, const int n, T *A, const int lda){
+void abs_matrix( const int m, const int n, T *A, const int lda ){
     
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
