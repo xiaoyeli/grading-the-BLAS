@@ -92,7 +92,7 @@ void init_guassian_random_matrices(  const T mean, const T std, int seed, const 
 template <typename T>
 void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
-    init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
+    init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
     // figure out which rows/columns to zero
     std::mt19937 gen(seed);
@@ -130,7 +130,7 @@ void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, c
 template <typename T>
 void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
-    init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
+    init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
     std::vector<bool> target_rows_mask_A(dim);
     std::vector<bool> target_cols_mask_B(dim);
@@ -188,7 +188,7 @@ void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, c
 template <typename T>
 void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
-    init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
+    init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
     std::vector<bool> target_rows_mask_A(dim);
     std::vector<bool> target_cols_mask_B(dim);
