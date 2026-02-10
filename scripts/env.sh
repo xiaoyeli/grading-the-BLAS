@@ -13,6 +13,9 @@ module load cudatoolkit/12.9
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd ${REPO_ROOT}
 
+export LIBRARY_PATH=${LIBRARY_PATH}:${REPO_ROOT}/lib
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${REPO_ROOT}/lib
+
 NETLIBBLAS_SO_PATH=$(find -name "librefblas.so" | head -n 1 | xargs realpath)
 if [ -e "${NETLIBBLAS_SO_PATH}" ]
 then

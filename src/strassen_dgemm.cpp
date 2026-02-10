@@ -1,6 +1,14 @@
 #include <vector>
 #include <cassert>
 
+#ifdef GAME1A
+#include <cmath>
+#endif
+
+#ifdef GAME1B
+#define GAMEFACTOR 1000
+#endif
+
 #define BASECASE_SIZE 2
 
 extern "C" {
@@ -35,7 +43,7 @@ void sub_matrix( const double *A, const int lda, const double *B, const int ldb,
     return;
 }
 
-void naive_gemm( const double *A, const int lda, const double *B, const int ldb, const int m, const int k, const int n, double *C, const int ldc ){
+void naive_dgemm( const double *A, const int lda, const double *B, const int ldb, const int m, const int k, const int n, double *C, const int ldc ){
 
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
@@ -48,7 +56,7 @@ void naive_gemm( const double *A, const int lda, const double *B, const int ldb,
     return;
 }
 
-void dgemm_(const char* transa, const char* transb,
+void strassen_dgemm(const char* transa, const char* transb,
                 const int* m, const int* n, const int* k,
                 const double* alpha,
                 const double* A, const int* lda,
@@ -56,11 +64,9 @@ void dgemm_(const char* transa, const char* transb,
                 const double* beta,
                 double* C, const int* ldc){
     
-    assert((*m == *k) && (*k == *n) && (*m == *n) && ( *m % 2 == 0 ) && "Strassen DGEMM only implemented for square matrices whose dimensions are a power of 2");
-
     // base case
     if ( *m <= BASECASE_SIZE ){
-        naive_gemm( A, *lda, B, *ldb, *m, *k, *n, C, *ldc );
+        naive_dgemm( A, *lda, B, *ldb, *m, *k, *n, C, *ldc );
         return;
     }
 
@@ -77,27 +83,27 @@ void dgemm_(const char* transa, const char* transb,
     
     add_matrix( &A[0], *lda, &A[half_dim + half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A11 + A22
     add_matrix( &B[0], *ldb, &B[half_dim + half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B11 + B22
-    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M1[0], &half_dim ); // M1 = buffer1 * buffer2
+    strassen_dgemm( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M1[0], &half_dim ); // M1 = buffer1 * buffer2
     
     add_matrix( &A[half_dim], *lda, &A[half_dim + half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A21 + A22
-    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &B[0], ldb, beta, &M2[0], &half_dim ); // M2 = buffer1 * B11
+    strassen_dgemm( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &B[0], ldb, beta, &M2[0], &half_dim ); // M2 = buffer1 * B11
 
     sub_matrix( &B[half_dim**ldb], *ldb, &B[half_dim + half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B12 - B22
-    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &A[0], lda, &buffer2[0], &half_dim, beta, &M3[0], &half_dim ); // M3 = A11 * buffer2
+    strassen_dgemm( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &A[0], lda, &buffer2[0], &half_dim, beta, &M3[0], &half_dim ); // M3 = A11 * buffer2
 
     sub_matrix( &B[half_dim], *ldb, &B[0], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B21 - B11
-    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &A[half_dim + half_dim**lda], lda, &buffer2[0], &half_dim, beta, &M4[0], &half_dim ); // M4 = A22 * buffer2
+    strassen_dgemm( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &A[half_dim + half_dim**lda], lda, &buffer2[0], &half_dim, beta, &M4[0], &half_dim ); // M4 = A22 * buffer2
     
     add_matrix( &A[0], *lda, &A[half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A11 + A12
-    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &B[half_dim + half_dim**ldb], ldb, beta, &M5[0], &half_dim ); // M5 = buffer1 * B22
+    strassen_dgemm( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &B[half_dim + half_dim**ldb], ldb, beta, &M5[0], &half_dim ); // M5 = buffer1 * B22
 
     sub_matrix( &A[half_dim], *lda, &A[0], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A21 - A11
     add_matrix( &B[0], *ldb, &B[half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B11 + B12
-    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M6[0], &half_dim ); // M6 = buffer1 * buffer2
+    strassen_dgemm( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M6[0], &half_dim ); // M6 = buffer1 * buffer2
 
     sub_matrix( &A[half_dim**lda], *lda, &A[half_dim + half_dim**lda], *lda, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = A12 - A22
     add_matrix( &B[half_dim], *ldb, &B[half_dim + half_dim**ldb], *ldb, &buffer2[0], half_dim, half_dim, half_dim ); // buffer2 = B21 + B22
-    dgemm_( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M7[0], &half_dim ); // M7 = buffer1 * buffer2
+    strassen_dgemm( transa, transb, &half_dim, &half_dim, &half_dim, alpha, &buffer1[0], &half_dim, &buffer2[0], &half_dim, beta, &M7[0], &half_dim ); // M7 = buffer1 * buffer2
 
     // C11
     add_matrix( &M1[0], half_dim, &M4[0], half_dim, &buffer1[0], half_dim, half_dim, half_dim ); // buffer1 = M1 + M4
@@ -113,4 +119,70 @@ void dgemm_(const char* transa, const char* transb,
     add_matrix( &buffer2[0], half_dim, &M6[0], half_dim, &C[half_dim + half_dim**ldc], *ldc, half_dim, half_dim ); // C22 = buffer2 + M6
 
     return;
+}
+
+
+void dgemm_(const char* transa, const char* transb,
+                const int* m, const int* n, const int* k,
+                const double* alpha,
+                const double* A, const int* lda,
+                const double* B, const int* ldb,
+                const double* beta,
+                double* C, const int* ldc){
+
+    assert((*m == *k) && (*k == *n) && (*m == *n) && ( *m % 2 == 0 ) && "Strassen DGEMM only implemented for square matrices whose dimensions are a power of 2");
+
+#ifdef GAME1A
+    std::vector<double> A_scaled(*m * *k);
+    std::vector<double> B_scaled(*k * *n);
+
+    std::vector<double> D1_diag(*m);
+    std::vector<double> D2_diag(*m);
+
+    // init diags
+    for ( int i = 0; i < *m; ++i ){
+        D1_diag[i] = std::abs(A[i]);
+        D2_diag[i] = std::abs(B[i * (*ldb)]);
+    }
+
+    // inf norms of rows/cols of A and B respectively
+    for ( int i = 0; i < *m; ++i ){
+        for ( int j = 1; j < *m; ++j ){
+            D1_diag[i] = std::abs(A[i + j*(*lda)]) > D1_diag[i] ? std::abs(A[i + j*(*lda)]) : D1_diag[i];
+            D2_diag[i] = std::abs(B[j + i*(*ldb)]) > D2_diag[i] ? std::abs(B[j + i*(*ldb)]) : D2_diag[i];
+        }
+    }
+
+    // scale to yield unit norms
+    for ( int i = 0; i < *m; ++i ){
+        for ( int j = 0; j < *m; ++j ){
+            A_scaled[i + j*(*m)] = D1_diag[i] != 0.0 ? A[i + j*(*lda)] / D1_diag[i] : 0.0;
+            B_scaled[j + i*(*k)] = D2_diag[i] != 0.0 ? B[j + i*(*ldb)] / D2_diag[i] : 0.0;
+        }
+    }
+
+    strassen_dgemm(transa, transb, m, n, k, alpha, &A_scaled[0], m, &B_scaled[0], k, beta, C, ldc);
+
+    // unscale
+#ifdef GAME1B
+    double C_abs_max = 0.0;
+#endif
+    for ( int i = 0; i < *m; ++i ){
+        for ( int j = 0; j < *m; ++j ){
+            C[i + j*(*ldc)] = D1_diag[i] * C[i + j*(*ldc)] * D2_diag[j];
+#ifdef GAME1B
+            C_abs_max = std::abs(C[i + j*(*ldc)]) > C_abs_max ? std::abs(C[i + j*(*ldc)]) : C_abs_max;
+#endif
+        }
+    }
+#ifdef GAME1B
+    for ( int i = 0; i < *m; ++i ){
+        for ( int j = 0; j < *m; ++j ){
+            C[i + j*(*ldc)] = C[i + j*(*ldc)] < GAMEFACTOR * std::numeric_limits<double>::epsilon() * C_abs_max ? 0.0 : C[i + j*(*ldc)];
+        }
+    }
+#endif
+#else
+    strassen_dgemm(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
+#endif
 }
