@@ -92,7 +92,7 @@ void init_guassian_random_matrices(  const T mean, const T std, int seed, const 
 template <typename T>
 void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
-    init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
+    init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
 
     // figure out which rows/columns to zero
     std::mt19937 gen(seed);
@@ -130,7 +130,7 @@ void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, c
 template <typename T>
 void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
-    init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
+    init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
 
     std::vector<bool> target_rows_mask_A(dim);
     std::vector<bool> target_cols_mask_B(dim);
@@ -188,7 +188,7 @@ void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, c
 template <typename T>
 void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
 
-    init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
+    init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
 
     std::vector<bool> target_rows_mask_A(dim);
     std::vector<bool> target_cols_mask_B(dim);
@@ -399,15 +399,15 @@ void init_matrices( std::string type, int seed, const int m, const int n, const 
             init_test2a_matrices( seed, m, A, lda, B, ldb, max_exponent);
         }
         else if ( type == "test2b" ){
-            double max_exponent = std::sqrt(EXP_NEAR_OVERFLOW);
+            double max_exponent = EXP_NEAR_OVERFLOW / 2.0;
             init_test2b_matrices( seed, m, A, lda, B, ldb, max_exponent);
         }
         else if ( type == "test2c" ){
-            double max_exponent = std::sqrt(EXP_NEAR_OVERFLOW);
+            double max_exponent = EXP_NEAR_OVERFLOW / 2.0;
             init_test2c_matrices( seed, m, A, lda, B, ldb, max_exponent);
         }
         else if ( type == "test3" ){
-            double max_exponent = std::sqrt(EXP_NEAR_OVERFLOW);
+            double max_exponent = EXP_NEAR_OVERFLOW / 2.0;
             init_test3_matrices( seed, m, A, lda, B, ldb, max_exponent );
         }
         else{
