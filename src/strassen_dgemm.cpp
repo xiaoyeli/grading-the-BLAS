@@ -1,11 +1,11 @@
 #include <vector>
 #include <cassert>
 
-#ifdef GAME1A
+#ifdef SCALING
 #include <cmath>
 #endif
 
-#ifdef GAME1B
+#ifdef ZEROING
 #define GAMEFACTOR 1000
 #endif
 
@@ -132,7 +132,7 @@ void dgemm_(const char* transa, const char* transb,
 
     assert((*m == *k) && (*k == *n) && (*m == *n) && ( *m % 2 == 0 ) && "Strassen DGEMM only implemented for square matrices whose dimensions are a power of 2");
 
-#ifdef GAME1A
+#ifdef SCALING
     std::vector<double> A_scaled(*m * *k);
     std::vector<double> B_scaled(*k * *n);
 
@@ -164,18 +164,18 @@ void dgemm_(const char* transa, const char* transb,
     strassen_dgemm(transa, transb, m, n, k, alpha, &A_scaled[0], m, &B_scaled[0], k, beta, C, ldc);
 
     // unscale
-#ifdef GAME1B
+#ifdef ZEROING
     double C_abs_max = 0.0;
 #endif
     for ( int i = 0; i < *m; ++i ){
         for ( int j = 0; j < *m; ++j ){
             C[i + j*(*ldc)] = D1_diag[i] * C[i + j*(*ldc)] * D2_diag[j];
-#ifdef GAME1B
+#ifdef ZEROING
             C_abs_max = std::abs(C[i + j*(*ldc)]) > C_abs_max ? std::abs(C[i + j*(*ldc)]) : C_abs_max;
 #endif
         }
     }
-#ifdef GAME1B
+#ifdef ZEROING
     for ( int i = 0; i < *m; ++i ){
         for ( int j = 0; j < *m; ++j ){
             C[i + j*(*ldc)] = C[i + j*(*ldc)] < GAMEFACTOR * std::numeric_limits<double>::epsilon() * C_abs_max ? 0.0 : C[i + j*(*ldc)];

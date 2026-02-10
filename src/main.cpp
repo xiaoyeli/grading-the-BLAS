@@ -4,7 +4,7 @@
 #include <random>
 
 #ifdef CUDA
-#include "cublas_gemm_wrapper.hpp"
+#include "cublas_dgemm_wrapper.hpp"
 #endif
 
 #ifndef DRYRUN
@@ -134,7 +134,7 @@ int main(){
 #else
             init_zero_matrix(m, n, &C[0], ldc);
 #ifdef CUDA
-            cublas_gemm_wrapper(m, n, k, &A[0], lda, &B[0], ldb, &C[0], ldc);
+            cublas_dgemm_wrapper(m, n, k, &A[0], lda, &B[0], ldb, &C[0], ldc);
 #else
             dgemm_(&transpose, &transpose, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
 #endif
