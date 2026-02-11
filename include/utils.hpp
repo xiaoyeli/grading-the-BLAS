@@ -34,7 +34,7 @@ void abs_matrix( const int m, const int n, T *A, const int lda ){
     
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
-            A[i + j*lda] = abs(A[i + j*lda]);
+            A[i + j*lda] = std::abs(A[i + j*lda]);
         }
     }
 
