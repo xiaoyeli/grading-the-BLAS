@@ -178,7 +178,7 @@ void dgemm_(const char* transa, const char* transb,
 #ifdef ZEROING
     for ( int i = 0; i < *m; ++i ){
         for ( int j = 0; j < *m; ++j ){
-            C[i + j*(*ldc)] = C[i + j*(*ldc)] < GAMEFACTOR * std::numeric_limits<double>::epsilon() * C_abs_max ? 0.0 : C[i + j*(*ldc)];
+            C[i + j*(*ldc)] = std::abs(C[i + j*(*ldc)]) < GAMEFACTOR * std::numeric_limits<double>::epsilon() * C_abs_max ? 0.0 : C[i + j*(*ldc)];
         }
     }
 #endif
