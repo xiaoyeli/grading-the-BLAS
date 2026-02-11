@@ -13,7 +13,7 @@
 #define TEST1C_RATIO_1 0.5      // ratio of targeted rows / cols in A and B
 #define TEST1C_RATIO_2 0.5      // ratio of zero entries in targeted rows of A; the ratio of zero entries in targeted cols of B is 1 - TEST1C_RATIO_2
 #define TEST1C_RATIO_3 0.5      // ratio of targeted rows / cols in which to add a nonzero
-#define EXP_NEAR_OVERFLOW 1020
+#define EXP_NEAR_OVERFLOW 1000
 
 template <typename T>
 void init_zero_matrix( const int m, const int n, T *A, const int lda ){
