@@ -19,28 +19,25 @@ void cublas_dgemm_wrapper( const int32_t m, const int32_t n, const int32_t k, co
     std::vector<double> A_scaled(m * k);
     std::vector<double> B_scaled(k * n);
 
-    std::vector<double> D1_diag(m);
-    std::vector<double> D2_diag(m);
+    std::vector<double> A_col_norms(m);
+    std::vector<double> B_row_norms(m);
 
-    // init diags
+    // find inf norms of cols/rows of A and B respectively
     for ( int i = 0; i < m; ++i ){
-        D1_diag[i] = std::abs(A[i]);
-        D2_diag[i] = std::abs(B[i * ldb]);
-    }
-
-    // inf norms of rows/cols of A and B respectively
-    for ( int i = 0; i < m; ++i ){
+        A_col_norms[i] = std::abs(A[0 + i * lda]);
+        B_row_norms[i] = std::abs(B[i + 0 * ldb]);
         for ( int j = 1; j < m; ++j ){
-            D1_diag[i] = std::abs(A[i + j*lda]) > D1_diag[i] ? std::abs(A[i + j*lda]) : D1_diag[i];
-            D2_diag[i] = std::abs(B[j + i*ldb]) > D2_diag[i] ? std::abs(B[j + i*ldb]) : D2_diag[i];
+            A_col_norms[i] = std::abs(A[j + i*lda]) > A_col_norms[i] ? std::abs(A[j + i*lda]) : A_col_norms[i];
+            B_row_norms[i] = std::abs(B[i + j*ldb]) > B_row_norms[i] ? std::abs(B[i + j*ldb]) : B_row_norms[i];
         }
     }
 
-    // scale to yield unit norms
+    // scaling
     for ( int i = 0; i < m; ++i ){
+        double scaling_factor = A_col_norms[i] * B_row_norms[i] != 0 ? std::ldexp(1.0, std::round((std::log2(B_row_norms[i]) - std::log2(A_col_norms[i])) / 2.0)) : 1.0;        
         for ( int j = 0; j < m; ++j ){
-            A_scaled[i + j*m] = D1_diag[i] != 0.0 ? A[i + j*lda] / D1_diag[i] : 0.0;
-            B_scaled[j + i*k] = D2_diag[i] != 0.0 ? B[j + i*ldb] / D2_diag[i] : 0.0;
+            A_scaled[j + i*m] = A[j + i*lda] * scaling_factor;
+            B_scaled[i + j*k] = B[i + j*ldb] / scaling_factor;
         }
     }
     size_t size_A = m * k * sizeof(T);
@@ -79,15 +76,6 @@ void cublas_dgemm_wrapper( const int32_t m, const int32_t n, const int32_t k, co
     cudaFree(d_C);
 
     cublasDestroy(handle);
-
-#ifdef SCALING
-    // unscale
-    for ( int i = 0; i < m; ++i ){
-        for ( int j = 0; j < n; ++j ){
-            C[i + j*ldc] = D1_diag[i] * C[i + j*ldc] * D2_diag[j];
-        }
-    }
-#endif
 
 #ifdef FP64_DIAGONAL
     for ( int i = 0; i < m; ++i ){
