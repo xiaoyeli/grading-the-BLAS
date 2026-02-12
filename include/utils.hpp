@@ -153,22 +153,54 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_n
     Group matrices_group = h5_file.openGroup(matrices_group_name);
     int matrix_id = construct_matrix_id(matrix_name, input_type, m, n, seed);
     string matrix_id_name = to_string(matrix_id);
-    if (H5Lexists(matrices_group.getId(), matrix_id_name.c_str(), H5P_DEFAULT) ){
-        return;
-    }
-
+    
     DSetCreatPropList plist;
     hsize_t matrix_chunk_size[2] = {(hsize_t)m, 1};
     plist.setChunk(2, matrix_chunk_size);
     plist.setDeflate(4);
-
+    
     hsize_t dimsA[2] = { (hsize_t)m, (hsize_t)n };
     DataSpace A_file_space(2, dimsA);
+    DataSet dset;
+    if ( H5Lexists(matrices_group.getId(), matrix_id_name.c_str(), H5P_DEFAULT) ){
+        dset = matrices_group.openDataSet(matrix_id_name.c_str(), H5P_DEFAULT);
+    }
+    else{
 #ifdef EXTENDED_PRECISION_REFERENCE
-    DataSet dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_LDOUBLE, A_file_space, plist);
+        dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_LDOUBLE, A_file_space, plist);
 #else
-    DataSet dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_DOUBLE, A_file_space, plist);
+        dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_DOUBLE, A_file_space, plist);
 #endif
+        DataSet metadata_ds = h5_file.openDataSet("/metadata");
+        DataSpace metadata_dataspace_old = metadata_ds.getSpace();
+        hsize_t old_size;
+        metadata_dataspace_old.getSimpleExtentDims(&old_size);
+
+        hsize_t new_size = old_size + 1;
+        metadata_ds.extend(&new_size);
+
+        H5::DataSpace metadata_file_space = metadata_ds.getSpace();
+        hsize_t offset = old_size;
+        hsize_t count  = 1;
+        metadata_file_space.selectHyperslab(H5S_SELECT_SET, &count, &offset);
+
+        // Memory space
+        H5::DataSpace metadata_mem_space(1, &count);
+
+        // Fill metadata record
+        GEMM_Metadata metadata{};
+        metadata.matrix_id = matrix_id;
+        snprintf(metadata.matrix_name, METADATA_STR_LEN, "%s", matrix_name.c_str());
+        snprintf(metadata.input_type, METADATA_STR_LEN, "%s", input_type.c_str());
+        metadata.m  = m;
+        metadata.n  = n;
+        metadata.seed = seed;
+
+        // Write
+        H5::CompType meta_type = metadata_ds.getCompType();
+        metadata_ds.write(&metadata, meta_type, metadata_mem_space, metadata_file_space);
+    }
+
     for ( int j = 0; j < n; ++j ){
         hsize_t count[2] = { (hsize_t)n, 1 };
         hsize_t start[2] = { 0, (hsize_t)j };
@@ -193,34 +225,5 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_n
         );
 #endif
     }
-
-    DataSet metadata_ds = h5_file.openDataSet("/metadata");
-    DataSpace metadata_dataspace_old = metadata_ds.getSpace();
-    hsize_t old_size;
-    metadata_dataspace_old.getSimpleExtentDims(&old_size);
-
-    hsize_t new_size = old_size + 1;
-    metadata_ds.extend(&new_size);
-
-    H5::DataSpace metadata_file_space = metadata_ds.getSpace();
-    hsize_t offset = old_size;
-    hsize_t count  = 1;
-    metadata_file_space.selectHyperslab(H5S_SELECT_SET, &count, &offset);
-
-    // Memory space
-    H5::DataSpace metadata_mem_space(1, &count);
-
-    // Fill metadata record
-    GEMM_Metadata metadata{};
-    metadata.matrix_id = matrix_id;
-    snprintf(metadata.matrix_name, METADATA_STR_LEN, "%s", matrix_name.c_str());
-    snprintf(metadata.input_type, METADATA_STR_LEN, "%s", input_type.c_str());
-    metadata.m  = m;
-    metadata.n  = n;
-    metadata.seed = seed;
-
-    // Write
-    H5::CompType meta_type = metadata_ds.getCompType();
-    metadata_ds.write(&metadata, meta_type, metadata_mem_space, metadata_file_space);
 }
 #endif
