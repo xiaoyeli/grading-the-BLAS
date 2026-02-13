@@ -163,6 +163,9 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_n
     DataSpace A_file_space(2, dimsA);
     DataSet dset;
     if ( H5Lexists(matrices_group.getId(), matrix_id_name.c_str(), H5P_DEFAULT) ){
+        if ( (matrix_name == "A") || (matrix_name == "B") ){
+            return;
+        }
         dset = matrices_group.openDataSet(matrix_id_name.c_str(), H5P_DEFAULT);
     }
     else{
