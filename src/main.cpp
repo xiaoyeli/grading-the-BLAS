@@ -74,8 +74,8 @@ int main(){
 #endif
     vector<string> matrix_types;
 
-    // matrix_types.push_back("U(0,1)");
-    // matrix_types.push_back("U(-1,1)");
+    matrix_types.push_back("U(0,1)");
+    matrix_types.push_back("U(-1,1)");
     
     matrix_types.push_back("test1a");
     matrix_types.push_back("test1b");
