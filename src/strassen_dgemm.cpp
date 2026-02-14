@@ -1,7 +1,7 @@
 #include <vector>
 #include <cassert>
 
-#ifdef SCALING
+#if defined(DABD_SCALING) || defined(ADDB_SCALING)
 #include <cmath>
 #endif
 
@@ -132,7 +132,7 @@ void dgemm_(const char* transa, const char* transb,
 
     assert((*m == *k) && (*k == *n) && (*m == *n) && ( *m % 2 == 0 ) && "Strassen DGEMM only implemented for square matrices whose dimensions are a power of 2");
 
-#ifdef SCALING
+#ifdef DABD_SCALING
     std::vector<double> A_scaled(*m * *k);
     std::vector<double> B_scaled(*k * *n);
 
@@ -160,10 +160,42 @@ void dgemm_(const char* transa, const char* transb,
             B_scaled[j + i*(*k)] = D2_diag[i] != 0.0 ? B[j + i*(*ldb)] / D2_diag[i] : 0.0;
         }
     }
+#endif
+#ifdef ADDB_SCALING
+    std::vector<double> A_scaled(*m * *k);
+    std::vector<double> B_scaled(*k * *n);
 
+    std::vector<double> A_col_norms(*m);
+    std::vector<double> B_row_norms(*m);
+
+    // find inf norms of cols/rows of A and B respectively
+    for ( int i = 0; i < *m; ++i ){
+        A_col_norms[i] = std::abs(A[0 + i * (*lda)]);
+        B_row_norms[i] = std::abs(B[i + 0 * (*ldb)]);
+        for ( int j = 1; j < *m; ++j ){
+            A_col_norms[i] = std::abs(A[j + i*(*lda)]) > A_col_norms[i] ? std::abs(A[j + i*(*lda)]) : A_col_norms[i];
+            B_row_norms[i] = std::abs(B[i + j*(*ldb)]) > B_row_norms[i] ? std::abs(B[i + j*(*ldb)]) : B_row_norms[i];
+        }
+    }
+
+    // scaling
+    for ( int i = 0; i < *m; ++i ){
+        double scaling_factor = A_col_norms[i] * B_row_norms[i] != 0 ? std::ldexp(1.0, std::round((std::log2(B_row_norms[i]) - std::log2(A_col_norms[i])) / 2.0)) : 1.0;        
+        for ( int j = 0; j < *m; ++j ){
+            A_scaled[j + i*(*m)] = A[j + i*(*lda)] * scaling_factor;
+            B_scaled[i + j*(*k)] = B[i + j*(*ldb)] / scaling_factor;
+        }
+    }
+
+#endif
+
+#if defined(ADDB_SCALING) || defined(DABD_SCALING)
     strassen_dgemm(transa, transb, m, n, k, alpha, &A_scaled[0], m, &B_scaled[0], k, beta, C, ldc);
+#else
+    strassen_dgemm(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
+#endif
 
-    // unscale
+#ifdef DABD_SCALING
 #ifdef ZEROING
     double C_abs_max = 0.0;
 #endif
@@ -182,7 +214,5 @@ void dgemm_(const char* transa, const char* transb,
         }
     }
 #endif
-#else
-    strassen_dgemm(transa, transb, m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
 #endif
 }

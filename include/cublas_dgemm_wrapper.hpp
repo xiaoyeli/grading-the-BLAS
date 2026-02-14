@@ -15,7 +15,7 @@ void cublas_dgemm_wrapper( const int32_t m, const int32_t n, const int32_t k, co
 
     T *d_A, *d_B, *d_C;
 
-#ifdef SCALING
+#ifdef ADDB_SCALING
     std::vector<double> A_scaled(m * k);
     std::vector<double> B_scaled(k * n);
 
