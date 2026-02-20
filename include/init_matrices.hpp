@@ -339,18 +339,20 @@ void init_test2c_matrices( int seed, const int dim, double *A, const int lda, do
 }
 
 void init_test3_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
-
-    std::mt19937 gen(seed);
+        
+    init_uniform_random_matrices( static_cast<double>(1.0), static_cast<double>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
+    
+    std::mt19937 gen(seed+1);
     std::uniform_real_distribution<double> generator(1.0, 2.0);
     std::vector<double> diag_D1(dim);
     std::vector<double> diag_D2(dim);
 
     for ( int i = 0; i < dim; ++i ){
-        diag_D1[i] = std::ldexp(1.0, ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) ));
-        diag_D2[i] = diag_D1[i];
+        diag_D1[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) ));
+        diag_D2[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) ));
     }
 
-    for ( int i = 0; i < dim; i = i + 2 ){
+    for ( int i = 0; i < dim/2; i = i + 2 ){
         std::swap(diag_D1[i], diag_D1[dim - 1 - i]);
         std::swap(diag_D2[i], diag_D2[dim - 1 - i]);
     }
@@ -360,8 +362,8 @@ void init_test3_matrices( int seed, const int dim, double *A, const int lda, dou
 
     for ( int i = 0; i < dim; ++i ){
         for ( int j = 0; j < dim; ++j ){
-            A[i + j*lda] = generator(gen) * diag_D1[i];
-            B[i + j*lda] = generator(gen) * diag_D2[j];
+            A[i + j*lda] = A[i + j*lda] * diag_D1[i];
+            B[i + j*ldb] = B[i + j*ldb] * diag_D2[j];
         }
     }
 }

@@ -85,7 +85,6 @@ int main(){
     matrix_types.push_back("test2b");
     matrix_types.push_back("test2c");
     
-    matrix_types.push_back("U(1,2)");
     matrix_types.push_back("test3");
 
     for ( const string& matrix_type : matrix_types ){
