@@ -267,16 +267,20 @@ void init_test2a_matrices( int seed, const int dim, double *A, const int lda, do
     std::uniform_real_distribution<double> generator(1.0, 2.0);
     std::vector<double> diag_D(dim);
     std::vector<double> diag_D_inv(dim);
+    std::vector<int> exponents(dim);
 
     for ( int i = 0; i < dim; ++i ){
         x[i] = generator(gen);
+        exponents[i] = ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) );
     }
+
+    std::shuffle(exponents.begin(), exponents.end(), gen);
 
     for ( int i = 0; i < dim; ++i ){
-        diag_D[i] = std::ldexp(1.0, ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) ));
-        diag_D_inv[i] = std::ldexp(1.0, -1 * (((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) )));
+        diag_D[i] = std::ldexp(1.0, exponents[i]);
+        diag_D_inv[i] = std::ldexp(1.0, -1 * exponents[i]);
     }
-
+    
     for ( int i = 0; i < dim; ++i ){
         for ( int j = 0; j < dim; ++j ){
             A[i + j*lda] = x[j] * diag_D[j];
