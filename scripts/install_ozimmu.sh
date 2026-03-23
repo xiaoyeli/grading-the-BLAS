@@ -1,20 +1,23 @@
 #! /bin/bash
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
+VERSION_HASH=08eea92
+
 cd ${REPO_ROOT}/submodules
 
 # clean
-rm -rf ozIMMU
+rm -rf ozIMMU-${VERSION_HASH}
 
 # acquire
 if ! git clone https://github.com/enp1s0/ozIMMU --recursive; then
     exit 1
 fi
 
-cd ozIMMU
+mv ozIMMU ozIMMU-${VERSION_HASH}
+cd ozIMMU-${VERSION_HASH}
 
 # checkout specific commit
-git checkout 08eea92
+git checkout ${VERSION_HASH}
 
 PATH_CUBLAS_LIB=$(find ${CUDA_HOME}/../../math_libs -name "libcublas.so" | head -n 1 | xargs realpath)
 if [ -e "${PATH_CUBLAS_LIB}" ]
