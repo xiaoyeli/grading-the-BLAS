@@ -1,12 +1,12 @@
 #ifndef UTILS_HPP
 #define UTILS_HPP
 
+#ifndef DRYRUN
 #include <H5Cpp.h>
 
 #define METADATA_STR_LEN 128
 
 using namespace H5;
-using namespace std;
 
 struct GEMM_Metadata {
     int matrix_id;
@@ -16,6 +16,10 @@ struct GEMM_Metadata {
     int n;
     int seed;
 };
+#endif
+
+using namespace std;
+
 
 template <typename T_to, typename T_from>
 void copy_matrix( const int m, const int n, T_to *A, const int lda, const T_from *B, const int ldb ){
@@ -69,6 +73,7 @@ void print_matrix_to_stdout_sci( const int m, const int n, const T *A, const int
     return;
 }
 
+#ifndef DRYRUN
 H5File init_hdf5( string filename ){
     
     H5::Exception::dontPrint();
@@ -229,4 +234,5 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_n
 #endif
     }
 }
+#endif
 #endif

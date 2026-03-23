@@ -1,6 +1,6 @@
-*.h5
-lib
-results
 main
+*.h5
+*.so
+*.o
 __*
 .*

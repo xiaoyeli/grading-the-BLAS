@@ -374,7 +374,9 @@ void init_test3_matrices( int seed, const int dim, double *A, const int lda, dou
 
 template <typename T>
 void init_matrices( std::string type, int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
-    
+    if ( type == "none" ){
+        assert(false && "No input type specified." );
+    }
     if ( type == "sanity" ){
         init_sanity_matrices(  m, n, k, A, lda, B, ldb );
     }
