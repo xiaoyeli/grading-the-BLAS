@@ -62,7 +62,7 @@ extern "C" {
 int main(){
 
 #ifndef DRYRUN
-    H5::H5File h5_file = H5::init_hdf5(HDF5_FILENAME);
+    H5::H5File h5_file = init_hdf5(HDF5_FILENAME);
 #endif
 
     char transpose = 'N';
