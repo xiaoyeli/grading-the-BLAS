@@ -76,3 +76,12 @@ then
 else
     echo "Warning: Could not find libozimmu.so"
 fi
+
+GEMMUL8_SO_PATH=$(find -name "libgemmul8.so" | head -n 1 | xargs realpath)
+if [ -e "${GEMMUL8_SO_PATH}" ]
+then
+    echo "Found libgemmul8.so at ${GEMMUL8_SO_PATH}"
+    export GEMMUL8_SO_PATH=${GEMMUL8_SO_PATH}
+else
+    echo "Warning: Could not find libgemmul8.so"
+fi
