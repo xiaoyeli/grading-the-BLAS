@@ -151,6 +151,10 @@ int construct_matrix_id( string matrix_name, string input_type, int m, int n, in
     return static_cast<int>( hasher(id_str) );
 }
 
+template <typename T> const PredType & native_type;
+template <> const PredType& native_type<double> = PredType::NATIVE_DOUBLE;
+template <> const PredType& native_type<long double> = PredType::NATIVE_LDOUBLE;
+
 template <typename T>
 void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_name, string input_type, int m, int n, int seed ){
     
@@ -174,11 +178,7 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_n
         dset = matrices_group.openDataSet(matrix_id_name.c_str(), H5P_DEFAULT);
     }
     else{
-#ifdef EXTENDED_PRECISION_REFERENCE
-        dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_LDOUBLE, A_file_space, plist);
-#else
-        dset = matrices_group.createDataSet(matrix_id_name, PredType::NATIVE_DOUBLE, A_file_space, plist);
-#endif
+        dset = matrices_group.createDataSet(matrix_id_name, native_type<T>, A_file_space, plist);
         DataSet metadata_ds = h5_file.openDataSet("/metadata");
         DataSpace metadata_dataspace_old = metadata_ds.getSpace();
         hsize_t old_size;
@@ -217,21 +217,12 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_n
         hsize_t mem_dims[1] = { (hsize_t)n };
         DataSpace A_mem_space(1, mem_dims);
 
-#ifdef EXTENDED_PRECISION_REFERENCE
         dset.write(
             A + j * lda,
-            PredType::NATIVE_LDOUBLE,
+            native_type<T>,
             A_mem_space,
             A_file_space
         );
-#else
-        dset.write(
-            A + j * lda,
-            PredType::NATIVE_DOUBLE,
-            A_mem_space,
-            A_file_space
-        );
-#endif
     }
 }
 #endif
