@@ -13,6 +13,8 @@
 #define TEST1C_RATIO_1 0.5      // ratio of targeted rows / cols in A and B
 #define TEST1C_RATIO_2 0.5      // ratio of zero entries in targeted rows of A; the ratio of zero entries in targeted cols of B is 1 - TEST1C_RATIO_2
 #define TEST1C_RATIO_3 0.5      // ratio of targeted rows / cols in which to add a nonzero
+#define TEST2C_RATIO_1 0.25     // ratio of targeted rows / cols in A and B
+#define TEST2C_RATIO_2 0.25     // ratio of entries to negate in targeted rows / cols of A and B
 #define EXP_NEAR_OVERFLOW 1000
 
 template <typename T>
@@ -296,48 +298,115 @@ void init_test2a_matrices( int seed, const int dim, double *A, const int lda, do
 
 void init_test2b_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
 
-    init_test2a_matrices(seed, dim, A, lda, B, ldb, max_exponent);
+    std::vector<double> unpermuted_A(dim * dim);
+    std::vector<double> unpermuted_B(dim * dim);
 
+    init_test2a_matrices(seed, dim, &unpermuted_A[0], dim, &unpermuted_B[0], dim, max_exponent);
+
+    // circular shifting
     for ( int i = 1; i < dim; ++i ){
         for ( int j = 0; j < dim; ++j ){
-            A[i + j*lda] = A[0 + ((dim + j - i)%dim)*lda];
+            unpermuted_A[i + j*lda] = unpermuted_A[0 + ((dim + j - i)%dim)*lda];
         }
     }
 
     for ( int j = 1; j < dim; ++j ){
         for ( int i = 0; i < dim; ++i ){
-            B[i + j*ldb] = B[(dim + i - j)%dim];
+            unpermuted_B[i + j*ldb] = unpermuted_B[(dim + i - j)%dim];
+        }
+    }
+
+    // permuting
+    std::vector<int> p1(dim);
+    std::vector<int> p2(dim);
+    std::vector<int> p3(dim);
+    
+    for ( int i = 0; i < dim; ++i ){
+        p1[i] = i;
+        p2[i] = i;
+        p3[i] = i;
+    }
+
+    std::mt19937 gen(seed);
+    std::shuffle(p1.begin(), p1.end(), gen);
+    std::shuffle(p2.begin(), p2.end(), gen);
+    std::shuffle(p3.begin(), p3.end(), gen);
+
+    for ( int i = 0; i < dim; ++i ){
+        for ( int j = 0; j < dim; ++j ){
+            A[i + j*lda] = unpermuted_A[p1[i] + p3[j]*dim];
+        }
+    }
+
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            B[i + j*lda] = unpermuted_B[p3[i] + p2[j]*dim];
         }
     }
 }
 
 void init_test2c_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
 
-    std::vector<double> unpermuted_A(dim * dim);
-    std::vector<double> unpermuted_B(dim * dim);
+    init_test2b_matrices(seed, dim, A, lda, B, ldb, max_exponent);
 
-    init_test2b_matrices(seed, dim, &unpermuted_A[0], dim, &unpermuted_B[0], dim, max_exponent);
+    std::vector<bool> target_vector_mask(dim);
+    std::vector<bool> negation_mask(dim);
+    int n_targeted_vectors = std::max(1, (int)(TEST2C_RATIO_1*dim));
+    int n_negations = std::max(1, (int)(TEST2C_RATIO_2*dim));
 
-    std::vector<uint> p(dim);
-    
     for ( int i = 0; i < dim; ++i ){
-        p[i] = i;
+        target_vector_mask[i] = false;
+        negation_mask[i] = false;
+    }
+
+    for ( int i = 0; i < n_targeted_vectors; ++i ){
+        target_vector_mask[i] = true;
+    }
+
+    for ( int i = 0; i < n_negations; ++i ){
+        negation_mask[i] = true;
     }
 
     std::mt19937 gen(seed);
-    std::shuffle(p.begin(), p.end(), gen);
 
+    
+    // pick a small random subset of rows of A and negate some of their entries
+    std::shuffle(target_vector_mask.begin(), target_vector_mask.end(), gen);
     for ( int i = 0; i < dim; ++i ){
-        for ( int j = 0; j < dim; ++j ){
-            A[i + j*lda] = unpermuted_A[p[i] + j*dim];
+        if ( target_vector_mask[i] ){
+            std::shuffle(negation_mask.begin(), negation_mask.end(), gen);
+            for ( int j = 0; j < dim; ++j ){
+                if ( negation_mask[j] ){
+                    A[i + j*lda] *= -1.0;
+                }
+            }
         }
     }
 
-    std::shuffle(p.begin(), p.end(), gen);
-
+    // pick a small random subset of columns of B and negate some of their entries
+    std::shuffle(target_vector_mask.begin(), target_vector_mask.end(), gen);
     for ( int j = 0; j < dim; ++j ){
-        for ( int i = 0; i < dim; ++i ){
-            B[i + j*lda] = unpermuted_B[i + p[j]*dim];
+        if ( target_vector_mask[j] ){
+            std::shuffle(negation_mask.begin(), negation_mask.end(), gen);
+            for ( int i = 0; i < dim; ++i ){
+                if ( negation_mask[i] ){
+                    B[i + j*ldb] *= -1.0;
+                }
+            }
+        }
+    }
+
+    // Let S be a diagonal matrix with random +/- 1 diagonal entries and let A = A*S and B = S*B
+    std::vector<double> S(dim);
+    std::uniform_int_distribution<int> sign_dist(0, 1);
+    for ( int i = 0; i < dim; ++i ){
+        S[i] = (sign_dist(gen) == 0) ? -1.0 : 1.0;
+    }
+
+    for ( int i = 0; i < dim; ++i ){
+        for ( int j = 0; j < dim; ++j ){
+            A[i + j*lda] *= S[j];
+            B[i + j*ldb] *= S[i];
         }
     }
 }
