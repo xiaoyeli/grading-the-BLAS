@@ -309,13 +309,13 @@ void init_test2b_matrices( int seed, const int dim, double *A, const int lda, do
     // circular shifting
     for ( int i = 1; i < dim; ++i ){
         for ( int j = 0; j < dim; ++j ){
-            unpermuted_A[i + j*lda] = unpermuted_A[0 + ((dim + j - i)%dim)*lda];
+            unpermuted_A[i + j*dim] = unpermuted_A[0 + ((dim + j - i)%dim)*dim];
         }
     }
 
     for ( int j = 1; j < dim; ++j ){
         for ( int i = 0; i < dim; ++i ){
-            unpermuted_B[i + j*ldb] = unpermuted_B[(dim + i - j)%dim];
+            unpermuted_B[i + j*dim] = unpermuted_B[(dim + i - j)%dim + 0*dim];
         }
     }
 
@@ -343,7 +343,7 @@ void init_test2b_matrices( int seed, const int dim, double *A, const int lda, do
 
     for ( int j = 0; j < dim; ++j ){
         for ( int i = 0; i < dim; ++i ){
-            B[i + j*lda] = unpermuted_B[p3[i] + p2[j]*dim];
+            B[i + j*ldb] = unpermuted_B[p3[i] + p2[j]*dim];
         }
     }
 }
