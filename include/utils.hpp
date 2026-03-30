@@ -128,7 +128,7 @@ H5File init_hdf5( string filename ){
         meta_type.insertMember(
             "scaling_factor",
             HOFFSET(GEMM_Metadata, scaling_factor),
-            H5::PredType::NATIVE_INT32
+            H5::PredType::NATIVE_DOUBLE
         );
 
         hsize_t initial_size = 0;
