@@ -12,6 +12,7 @@ struct GEMM_Metadata {
     int matrix_id;
     char matrix_name[METADATA_STR_LEN];
     char input_type[METADATA_STR_LEN];
+    double scaling_factor;
     int m;
     int n;
     int seed;
@@ -124,6 +125,12 @@ H5File init_hdf5( string filename ){
             H5::PredType::NATIVE_INT32
         );
 
+        meta_type.insertMember(
+            "scaling_factor",
+            HOFFSET(GEMM_Metadata, scaling_factor),
+            H5::PredType::NATIVE_INT32
+        );
+
         hsize_t initial_size = 0;
         hsize_t max_size     = H5S_UNLIMITED;
 
@@ -145,8 +152,8 @@ H5File init_hdf5( string filename ){
     return h5_file;
 }
 
-int construct_matrix_id( string matrix_name, string input_type, int m, int n, int seed ){
-    string id_str = matrix_name + "_" + input_type + "_" + to_string(m) + "m_" + to_string(n) + "n_" + to_string(seed);
+int construct_matrix_id( string matrix_name, string input_type, double scaling_factor, int m, int n, int seed ){
+    string id_str = matrix_name + "_" + input_type + "_" + to_string(scaling_factor) + "_" + to_string(m) + "m_" + to_string(n) + "n_" + to_string(seed);
     std::hash<string> hasher;
     return static_cast<int>( hasher(id_str) );
 }
@@ -156,11 +163,11 @@ template <> const PredType& native_type<double> = PredType::NATIVE_DOUBLE;
 template <> const PredType& native_type<long double> = PredType::NATIVE_LDOUBLE;
 
 template <typename T>
-void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_name, string input_type, int m, int n, int seed ){
+void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_name, string input_type, double scaling_factor, int m, int n, int seed ){
     
     string matrices_group_name = "matrices";
     Group matrices_group = h5_file.openGroup(matrices_group_name);
-    int matrix_id = construct_matrix_id(matrix_name, input_type, m, n, seed);
+    int matrix_id = construct_matrix_id(matrix_name, input_type, scaling_factor, m, n, seed);
     string matrix_id_name = to_string(matrix_id);
     
     DSetCreatPropList plist;
@@ -200,6 +207,7 @@ void write_matrix_to_hdf5( H5File& h5_file, T *A, const int lda, string matrix_n
         metadata.matrix_id = matrix_id;
         snprintf(metadata.matrix_name, METADATA_STR_LEN, "%s", matrix_name.c_str());
         snprintf(metadata.input_type, METADATA_STR_LEN, "%s", input_type.c_str());
+        metadata.scaling_factor = scaling_factor;
         metadata.m  = m;
         metadata.n  = n;
         metadata.seed = seed;

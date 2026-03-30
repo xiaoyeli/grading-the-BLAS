@@ -15,7 +15,10 @@
 #define TEST1C_RATIO_3 0.5      // ratio of targeted rows / cols in which to add a nonzero
 #define TEST2C_RATIO_1 0.25     // ratio of targeted rows / cols in A and B
 #define TEST2C_RATIO_2 0.25     // ratio of entries to negate in targeted rows / cols of A and B
-#define EXP_NEAR_OVERFLOW 1000
+
+#ifndef SCALING_FACTOR
+#define SCALING_FACTOR 0.0 / 0.0
+#endif
 
 template <typename T>
 void init_zero_matrix( const int m, const int n, T *A, const int lda ){
@@ -188,7 +191,7 @@ void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, c
 }
 
 template <typename T>
-void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb ){
+void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb, double max_exponent ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -244,16 +247,16 @@ void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, c
         std::shuffle(nonzero_mask.begin(), nonzero_mask.end(), gen);
         for ( int t = 0; t < dim; ++t ){
             if ( target_rows_cols_with_nonzero_mask[s] && nonzero_mask[t] ){
-                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], -1.0 * EXP_NEAR_OVERFLOW / 2.0);
-                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], -1.0 * EXP_NEAR_OVERFLOW / 2.0);
+                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], -1.0 * max_exponent);
+                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], -1.0 * max_exponent);
             }
             else if ( sparsity_mask_A[t] ){
                 A[target_rows_idx_A[s] + t*lda] = 0.0;
-                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], EXP_NEAR_OVERFLOW / 2.0);
+                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], max_exponent);
             }
             else{
                 B[t + target_cols_idx_B[s]*ldb] = 0.0;
-                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], EXP_NEAR_OVERFLOW / 2.0);
+                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], max_exponent);
             }
         }
     }
@@ -469,22 +472,28 @@ void init_matrices( std::string type, int seed, const int m, const int n, const 
             init_test1b_matrices( seed, m, A, lda, B, ldb );
         }
         else if ( type == "test1c" ){
-            init_test1c_matrices( seed, m, A, lda, B, ldb );
+            double max_exponent = SCALING_FACTOR;
+            assert( !std::isnan(max_exponent) );
+            init_test1c_matrices( seed, m, A, lda, B, ldb, max_exponent );
         }
         else if ( type == "test2a" ){
-            double max_exponent = EXP_NEAR_OVERFLOW;
+            double max_exponent = SCALING_FACTOR;
+            assert( !std::isnan(max_exponent) );
             init_test2a_matrices( seed, m, A, lda, B, ldb, max_exponent);
         }
         else if ( type == "test2b" ){
-            double max_exponent = EXP_NEAR_OVERFLOW / 2.0;
+            double max_exponent = SCALING_FACTOR;
+            assert( !std::isnan(max_exponent) );
             init_test2b_matrices( seed, m, A, lda, B, ldb, max_exponent);
         }
         else if ( type == "test2c" ){
-            double max_exponent = EXP_NEAR_OVERFLOW / 2.0;
+            double max_exponent = SCALING_FACTOR;
+            assert( !std::isnan(max_exponent) );
             init_test2c_matrices( seed, m, A, lda, B, ldb, max_exponent);
         }
         else if ( type == "test3" ){
-            double max_exponent = EXP_NEAR_OVERFLOW / 2.0;
+            double max_exponent = SCALING_FACTOR;
+            assert( !std::isnan(max_exponent) );
             init_test3_matrices( seed, m, A, lda, B, ldb, max_exponent );
         }
         else{

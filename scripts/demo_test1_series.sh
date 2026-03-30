@@ -5,6 +5,7 @@ cd ${REPO_ROOT}
 
 DGEMM_IMPLEMENTATIONS=(
     NAIVE_TRIPLE_LOOP_EXTENDED_PRECISION
+    NAIVE_TRIPLE_LOOP_FP64
     OZIMMU
     GEMMUL8
     STRASSEN
@@ -17,5 +18,5 @@ do
     echo "================== Testing ${impl}"
     make run MIN_DIM=64 MAX_DIM=64 DGEMM_IMPL=${impl} INPUT_TYPE=test1a
     make run MIN_DIM=64 MAX_DIM=64 DGEMM_IMPL=${impl} INPUT_TYPE=test1b
-    make run MIN_DIM=64 MAX_DIM=64 DGEMM_IMPL=${impl} INPUT_TYPE=test1c
+    make run MIN_DIM=64 MAX_DIM=64 SCALING_FACTOR=500 DGEMM_IMPL=${impl} INPUT_TYPE=test1c
 done

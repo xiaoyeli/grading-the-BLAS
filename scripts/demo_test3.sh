@@ -13,5 +13,5 @@ DGEMM_IMPLEMENTATIONS=(
 for impl in "${DGEMM_IMPLEMENTATIONS[@]}"
 do
     echo "================== Testing ${impl}"
-    make run MIN_DIM=64 MAX_DIM=64 DGEMM_IMPL=${impl} INPUT_TYPE=test3
+    make run MIN_DIM=64 MAX_DIM=64 SCALING_FACTOR=500 DGEMM_IMPL=${impl} INPUT_TYPE=test3
 done

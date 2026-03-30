@@ -1,7 +1,7 @@
 #include "init_matrices.hpp"
 #include "utils.hpp"
 #include <vector>
-#include <random>
+#include <cmath>
 
 #ifdef CUDA
 #include "cublas_dgemm_wrapper.hpp"
@@ -96,8 +96,8 @@ int main(){
 #endif
         init_matrices(INPUT_TYPE, seed, m, n, k, &A[0], lda, &B[0], ldb);
 #ifndef DRYRUN
-        write_matrix_to_hdf5(h5_file, &A[0], lda, "A", INPUT_TYPE, m, k, seed);
-        write_matrix_to_hdf5(h5_file, &B[0], ldb, "B", INPUT_TYPE, k, n, seed);
+        write_matrix_to_hdf5(h5_file, &A[0], lda, "A", INPUT_TYPE, SCALING_FACTOR, m, k, seed);
+        write_matrix_to_hdf5(h5_file, &B[0], ldb, "B", INPUT_TYPE, SCALING_FACTOR, k, n, seed);
 #endif
 #ifdef VERBOSE
         printf("A matrix:\n");
@@ -114,7 +114,7 @@ int main(){
         init_zero_matrix(m, n, &C_ext[0], ldc);
         ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
 #ifndef DRYRUN
-        write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, DGEMM_IMPL, INPUT_TYPE, m, n, seed);
+        write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, DGEMM_IMPL, INPUT_TYPE, SCALING_FACTOR, m, n, seed);
 #endif
         abs_matrix(m, k, &A_ext[0], lda);
         abs_matrix(m, k, &B_ext[0], ldb);
@@ -123,7 +123,7 @@ int main(){
 #ifndef DRYRUN
         string new_name = "ABS_A_AND_B_";
         new_name = new_name + DGEMM_IMPL;
-        write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, new_name, INPUT_TYPE, m, n, seed);
+        write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, new_name, INPUT_TYPE, SCALING_FACTOR, m, n, seed);
 #endif
 #else
         init_zero_matrix(m, n, &C[0], ldc);
@@ -137,7 +137,7 @@ int main(){
         print_matrix_to_stdout_sci(m, n, &C[0], ldc);
 #endif
 #ifndef DRYRUN
-        write_matrix_to_hdf5(h5_file, &C[0], ldc, DGEMM_IMPL, INPUT_TYPE, m, n, seed);
+        write_matrix_to_hdf5(h5_file, &C[0], ldc, DGEMM_IMPL, INPUT_TYPE, SCALING_FACTOR, m, n, seed);
 #endif
 #endif
     }

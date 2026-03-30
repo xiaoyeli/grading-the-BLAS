@@ -46,6 +46,10 @@ ifneq ($(INPUT_TYPE),)
 	CXXFLAGS += -DINPUT_TYPE=\"$(INPUT_TYPE)\"
 endif
 
+ifneq ($(SCALING_FACTOR),)
+	CXXFLAGS += -DSCALING_FACTOR=$(SCALING_FACTOR)
+endif
+
 # Verbosity
 ifeq ($(VERBOSE),1)
 	CXXFLAGS += -DVERBOSE
