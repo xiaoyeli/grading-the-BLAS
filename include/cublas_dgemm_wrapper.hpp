@@ -53,6 +53,47 @@ void cublas_dgemm_wrapper( const int32_t m, const int32_t n, const int32_t k, co
     cudaMemcpy(d_C, C, size_C, cudaMemcpyHostToDevice);
 
     cublasDgemm(handle, opA, opB, m, n, k, &alpha, d_A, m, d_B, k, &beta, d_C, ldc);
+#elif defined(DABD_SCALING)
+    std::vector<double> A_scaled(m * k);
+    std::vector<double> B_scaled(k * n);
+
+    std::vector<double> D1_diag(m);
+    std::vector<double> D2_diag(m);
+
+    // init diags
+    for ( int i = 0; i < m; ++i ){
+        D1_diag[i] = std::abs(A[i]);
+        D2_diag[i] = std::abs(B[i * ldb]);
+    }
+
+    // inf norms of rows/cols of A and B respectively
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 1; j < m; ++j ){
+            D1_diag[i] = std::abs(A[i + j*lda]) > D1_diag[i] ? std::abs(A[i + j*lda]) : D1_diag[i];
+            D2_diag[i] = std::abs(B[j + i*ldb]) > D2_diag[i] ? std::abs(B[j + i*ldb]) : D2_diag[i];
+        }
+    }
+
+    // scale to yield unit norms
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < m; ++j ){
+            A_scaled[i + j*m] = D1_diag[i] != 0.0 ? A[i + j*lda] / D1_diag[i] : 0.0;
+            B_scaled[j + i*k] = D2_diag[i] != 0.0 ? B[j + i*ldb] / D2_diag[i] : 0.0;
+        }
+    }
+    size_t size_A = m * k * sizeof(T);
+    size_t size_B = k * n * sizeof(T);
+    size_t size_C = ldc * n * sizeof(T);
+
+    cudaMalloc((void**)&d_A, size_A);
+    cudaMalloc((void**)&d_B, size_B);
+    cudaMalloc((void**)&d_C, size_C);
+    
+    cudaMemcpy(d_A, &A_scaled[0], size_A, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_B, &B_scaled[0], size_B, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_C, C, size_C, cudaMemcpyHostToDevice);
+
+    cublasDgemm(handle, opA, opB, m, n, k, &alpha, d_A, m, d_B, k, &beta, d_C, ldc);
 #else
     size_t size_A = lda * k * sizeof(T);
     size_t size_B = ldb * n * sizeof(T);
@@ -84,6 +125,12 @@ void cublas_dgemm_wrapper( const int32_t m, const int32_t n, const int32_t k, co
             C_ii = A[i + j*lda] * B[j + i*ldb] + C_ii;
         }
         C[i + i*ldc] = C_ii;
+    }
+#elif defined(DABD_SCALING)
+    for ( int i = 0; i < m; ++i ){
+        for ( int j = 0; j < m; ++j ){
+            C[i + j*ldc] = D1_diag[i] * C[i + j*ldc] * D2_diag[j];
+        }
     }
 #endif
 
