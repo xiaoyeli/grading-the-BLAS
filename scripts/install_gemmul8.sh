@@ -17,7 +17,7 @@ rm v${VERSION_NUMBER}.tar.gz
 
 cd GEMMul8-${VERSION_NUMBER}/GEMMul8
 
-# comment out any APIs not relevant to INT8 DGEMM
+# # comment out any APIs not relevant to INT8 DGEMM for faster compilation
 sed -i '102,114s/^/\/\/ /; 120,157s/^/\/\/ /' src/gemmul8.cu
 
 make -j4 CUDA_PATH=${CUDA_HOME} BACKEND=cuda GPU_ARCH=auto
