@@ -1,0 +1,22 @@
+#!/bin/bash
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd ${REPO_ROOT}
+
+DGEMM_IMPLEMENTATIONS=(
+    BLIS
+    OPENBLAS
+    CUBLAS
+    OZIMMU
+    GEMMUL8_ACCU
+    GEMMUL8_FAST
+    STRASSEN
+)
+
+for impl in "${DGEMM_IMPLEMENTATIONS[@]}"
+do
+    echo "================== Testing ${impl}"
+    make run MIN_DIM=32 MAX_DIM=1024 SCALING_FACTOR=500 DGEMM_IMPL=${impl} INPUT_TYPE=test2c
+    make run MIN_DIM=32 MAX_DIM=1024 SCALING_FACTOR=500 DGEMM_IMPL=${impl} INPUT_TYPE=test2c PERMUTE_ROWS_COLS=10
+    make run MIN_DIM=32 MAX_DIM=1024 SCALING_FACTOR=500 DGEMM_IMPL=${impl} INPUT_TYPE=test2c PERMUTE_DOT_PRODUCTS=10
+done

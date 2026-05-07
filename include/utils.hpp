@@ -21,6 +21,97 @@ struct GEMM_Metadata {
 
 using namespace std;
 
+template <typename T>
+void permute_rows( int seed, const int dim, T *A, const int lda ){
+    std::vector<int> p(dim);
+    for ( int i = 0; i < dim; ++i ){
+        p[i] = i;
+    }
+    std::mt19937 gen(seed);
+    std::shuffle(p.begin(), p.end(), gen);
+
+    std::vector<T> A_tmp(dim * dim);
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A_tmp[i + j*dim] = A[i + j*lda];
+        }
+    }
+
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A[i + j*lda] = A_tmp[p[i] + j*dim];
+        }
+    }
+}
+
+template <typename T>
+void permute_rows_inv( int seed, const int dim, T *A, const int lda ){
+    std::vector<int> p(dim);
+    for ( int i = 0; i < dim; ++i ){
+        p[i] = i;
+    }
+    std::mt19937 gen(seed);
+    std::shuffle(p.begin(), p.end(), gen);
+
+    std::vector<T> A_tmp(dim * dim);
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A_tmp[i + j*dim] = A[i + j*lda];
+        }
+    }
+
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A[p[i] + j*lda] = A_tmp[i + j*dim];
+        }
+    }
+}
+
+template <typename T>
+void permute_cols( int seed, const int dim, T *A, const int lda ){
+    std::vector<int> p(dim);
+    for ( int i = 0; i < dim; ++i ){
+        p[i] = i;
+    }
+    std::mt19937 gen(seed);
+    std::shuffle(p.begin(), p.end(), gen);
+
+    std::vector<T> A_tmp(dim * dim);
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A_tmp[i + j*dim] = A[i + j*lda];
+        }
+    }
+
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A[i + j*lda] = A_tmp[i + p[j]*dim];
+        }
+    }
+}
+
+template <typename T>
+void permute_cols_inv( int seed, const int dim, T *A, const int lda ){
+    std::vector<int> p(dim);
+    for ( int i = 0; i < dim; ++i ){
+        p[i] = i;
+    }
+    std::mt19937 gen(seed);
+    std::shuffle(p.begin(), p.end(), gen);
+
+    std::vector<T> A_tmp(dim * dim);
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A_tmp[i + j*dim] = A[i + j*lda];
+        }
+    }
+
+    for ( int j = 0; j < dim; ++j ){
+        for ( int i = 0; i < dim; ++i ){
+            A[i + p[j]*lda] = A_tmp[i + j*dim];
+        }
+    }
+}
 
 template <typename T_to, typename T_from>
 void copy_matrix( const int m, const int n, T_to *A, const int lda, const T_from *B, const int ldb ){
