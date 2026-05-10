@@ -444,6 +444,41 @@ void init_test3_matrices( int seed, const int dim, double *A, const int lda, dou
     }
 }
 
+void init_rubric_baseline( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
+
+    std::vector<double> x(dim);
+
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<double> generator(1.0, 2.0);
+    std::vector<double> diag_D(dim);
+    std::vector<double> diag_D_inv(dim);
+    std::vector<int> exponents(dim);
+
+    for ( int i = 0; i < dim; ++i ){
+        x[i] = generator(gen);
+        exponents[i] = ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) );
+    }
+
+    std::shuffle(exponents.begin(), exponents.end(), gen);
+
+    for ( int i = 0; i < dim; ++i ){
+        diag_D[i] = std::ldexp(1.0, exponents[i]);
+        diag_D_inv[i] = std::ldexp(1.0, -1 * exponents[i]);
+    }
+    
+    for ( int i = 0; i < dim; ++i ){
+        for ( int j = 0; j < dim; ++j ){
+            A[i + j*lda] = x[j] * diag_D[j];
+        }
+    }
+
+    for ( int i = 0; i < dim; ++i ){
+        for ( int j = 0; j < dim; ++j ){
+            B[i + j*ldb] = x[i] * diag_D_inv[i];
+        }
+    }
+}
+
 template <typename T>
 void init_matrices( std::string type, int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
     if ( type == "none" ){
@@ -495,6 +530,41 @@ void init_matrices( std::string type, int seed, const int m, const int n, const 
             double max_exponent = SCALING_FACTOR;
             assert( !std::isnan(max_exponent) );
             init_test3_matrices( seed, m, A, lda, B, ldb, max_exponent );
+        }
+        else if ( type == "rubric_baseline" ){
+            double max_exponent = SCALING_FACTOR;
+            int dim = m;
+            assert( !std::isnan(max_exponent) );
+
+            init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
+            
+            std::mt19937 gen(seed);
+            std::vector<double> diag_D(dim);
+            std::vector<double> diag_D_inv(dim);
+            std::vector<int> exponents(dim);
+
+            for ( int i = 0; i < dim; ++i ){
+                exponents[i] = ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) );
+            }
+
+            std::shuffle(exponents.begin(), exponents.end(), gen);
+
+            for ( int i = 0; i < dim; ++i ){
+                diag_D[i] = std::ldexp(1.0, exponents[i]);
+                diag_D_inv[i] = std::ldexp(1.0, -1 * exponents[i]);
+            }
+            
+            for ( int i = 0; i < dim; ++i ){
+                for ( int j = 0; j < dim; ++j ){
+                    A[i + j*lda] = A[i + j*lda] * diag_D[j];
+                }
+            }
+
+            for ( int i = 0; i < dim; ++i ){
+                for ( int j = 0; j < dim; ++j ){
+                    B[i + j*ldb] = B[i + j*ldb] * diag_D_inv[i];
+                }
+            }
         }
         else{
             assert(false && "Unknown matrix type specified in init_matrices." );
