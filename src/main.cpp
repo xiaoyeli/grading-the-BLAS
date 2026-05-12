@@ -1,183 +1,152 @@
+#include "dgemm_wrapper.hpp"
 #include "init_matrices.hpp"
 #include "utils.hpp"
 #include <vector>
 #include <cmath>
 
-#ifdef CUDA
-#include "cublas_dgemm_wrapper.hpp"
-#endif
+#define OUTPUT_DIR "results/raw_data/"
 
-#ifndef DRYRUN
-#include <H5Cpp.h>
-#endif
-
-#ifdef PERMUTE_ROWS_COLS
-#include <ctime>
-#endif
-
-#ifdef VERBOSE
+#if defined(VERBOSE)
 #include <stdio.h>
 #endif
 
-#define HDF5_FILENAME "grading_dgemm.h5"
-
-#ifndef DGEMM_IMPL
-#define DGEMM_IMPL "unknown"
+#if REFERENCE_GEMM > 0
+#include "reference_gemm.hpp"
 #endif
-
-#ifndef INPUT_TYPE
-#define INPUT_TYPE "none"
-#endif
-
-#ifndef MAX_DIM
-#define MAX_DIM 1024
-#endif
-
-#ifndef MIN_DIM
-#define MIN_DIM 32
-#endif
-
-using namespace std;
-
-extern "C" {
-    void dgemm_(const char* TRANSA, const char* TRANSB,
-                const int* M, const int* N, const int* K,
-                const double* ALPHA,
-                const double* A, const int* LDA,
-                const double* B, const int* LDB,
-                const double* BETA,
-                double* C, const int* LDC);
-
-#ifdef EXTENDED_PRECISION_REFERENCE
-    void ldgemm_(const char* TRANSA, const char* TRANSB,
-                const int* M, const int* N, const int* K,
-                const long double* ALPHA,
-                const long double* A, const int* LDA,
-                const long double* B, const int* LDB,
-                const long double* BETA,
-                long double* C, const int* LDC);
-#endif
-}
 
 int main(){
 
-#ifndef DRYRUN
-    H5::H5File h5_file = init_hdf5(HDF5_FILENAME);
+    std::string dgemm_impl_name = DGEMM_IMPL_NAME;
+#if defined(OUTER_SCALING)
+    dgemm_impl_name += "_w_outer_scaling";
+#endif
+#if defined(INNER_SCALING)
+    dgemm_impl_name += "_w_inner_scaling";
 #endif
 
-
-char transpose = 'N';
+    char transa = 'N';
+    char transb = 'N';
     double alpha = 1.0;
     double beta = 0.0;
     
     int max_m, max_k, max_n, lda, ldb, ldc;
-    max_m = max_k = max_n = lda = ldb = ldc = MAX_DIM;
+    max_m = max_k = max_n = lda = ldb = ldc = 1 << LOG2_MAX_DIM;
     
-    vector<double> A(max_m*max_k);
-    vector<double> B(max_k*max_n);
-    vector<double> C(max_m*max_n);
-    #ifdef EXTENDED_PRECISION_REFERENCE
-    long double alpha_ext;
-    long double beta_ext;
-    vector<long double> A_ext(max_m*max_k);
-    vector<long double> B_ext(max_k*max_n);
-    vector<long double> C_ext(max_m*max_n);
-    #endif
+    std::vector<double> A(max_m*max_k);
+    std::vector<double> B(max_k*max_n);
+    std::vector<double> C(max_m*max_n);
+    std::vector<double> rel_errors(max_m*max_n);
 
-    for ( int dim = MIN_DIM; dim <= MAX_DIM; dim = 2*dim ){
+#if defined(INNER_PERMUTE) || defined(OUTER_PERMUTE)
+    std::vector<double> C_ref(max_m*max_n);    
+#elif REFERENCE_GEMM == 1
+    std::vector<double> C_ref(max_m*max_n);
+    std::vector<double> C_ref_abs(max_m*max_n);
+    std::vector<double> f_of_n(max_m*max_n);
+    #elif REFERENCE_GEMM == 2
+    std::vector<long double> C_ref(max_m*max_n);
+    std::vector<long double> C_ref_abs(max_m*max_n);
+    std::vector<double> f_of_n(max_m*max_n);
+#endif
+
+    for ( int d = LOG2_MIN_DIM; d <= LOG2_MAX_DIM; ++d ){
         
         int m, n, k;
-        m = n = k = dim;
+        m = n = k = 1 << d;
+
+        for ( int s = LOG2_MIN_SCALING_FACTOR; s <= LOG2_MAX_SCALING_FACTOR; s += LOG2_INC_SCALING_FACTOR ){
         
-        // initialize A and B matrices
-        int seed = 0;
-        string input_type = INPUT_TYPE;
-        init_matrices(input_type, seed, m, n, k, &A[0], lda, &B[0], ldb);
-#ifndef DRYRUN
-        write_matrix_to_hdf5(h5_file, &A[0], lda, "A", input_type, SCALING_FACTOR, m, k, seed);
-        write_matrix_to_hdf5(h5_file, &B[0], ldb, "B", input_type, SCALING_FACTOR, k, n, seed);
-#endif
-#ifdef VERBOSE
-        printf("A matrix:\n");
-        print_matrix_to_stdout_sci(m, k, &A[0], lda);
-        printf("B matrix:\n");
-        print_matrix_to_stdout_sci(k, n, &B[0], ldb);
+            int seed = 0;
+            init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb);
+
+#if defined(VERBOSE)
+            printf("A matrix:\n");
+            print_matrix_to_stdout_sci(m, k, &A[0], lda);
+            printf("B matrix:\n");
+            print_matrix_to_stdout_sci(k, n, &B[0], ldb);
 #endif
 
-#ifdef PERMUTE_ROWS_COLS
-        for ( int i = 0; i < PERMUTE_ROWS_COLS; ++i ){
-            
-            input_type = INPUT_TYPE;
-            init_matrices(INPUT_TYPE, 0, m, n, k, &A[0], lda, &B[0], ldb);
-            
-            seed++;
-            input_type = input_type + "_permute_rows_cols";
-            permute_rows(seed, dim, &A[0], lda);
-            permute_cols(seed + PERMUTE_ROWS_COLS, dim, &B[0], ldb);
-#elif defined(PERMUTE_DOT_PRODUCTS)
-        for ( int i = 0; i < PERMUTE_DOT_PRODUCTS; ++i ){
-            
-            input_type = INPUT_TYPE;
-            init_matrices(INPUT_TYPE, 0, m, n, k, &A[0], lda, &B[0], ldb);
-            
-            seed++;
-            input_type = input_type + "_permute_dot_products";
-            permute_cols(seed, dim, &A[0], lda);
-            permute_rows(seed, dim, &B[0], ldb);
+#if defined(INNER_PERMUTE) || defined(OUTER_PERMUTE)
+            init_zero_matrix(m, n, &C_ref[0], ldc);
+            init_zero_matrix(m, n, &rel_errors[0], ldc);
+            reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C_ref[0], &ldc);
 #endif
 
-#ifdef EXTENDED_PRECISION_REFERENCE 
-        alpha_ext = alpha;
-        beta_ext = beta;
-        copy_matrix(m, k, &A_ext[0], lda, &A[0], lda);
-        copy_matrix(m, k, &B_ext[0], ldb, &B[0], ldb);
-        init_zero_matrix(m, n, &C_ext[0], ldc);
-        ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
-#ifdef PERMUTE_ROWS_COLS
-        permute_rows_inv(seed, dim, &C_ext[0], ldc);
-        permute_cols_inv(seed + PERMUTE_ROWS_COLS, dim, &C_ext[0], ldc);
+#if defined(OUTER_PERMUTE)
+            int perm_seed = 0;
+            for ( int i = 0; i < OUTER_PERMUTE; ++i ){
+                
+                init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb);
+                
+                perm_seed++;
+                permute_rows(perm_seed, m, k, &A[0], lda);
+                permute_cols(perm_seed + OUTER_PERMUTE, k, n, &B[0], ldb);
+#elif defined(INNER_PERMUTE)
+            int perm_seed = 0;
+            for ( int i = 0; i < INNER_PERMUTE; ++i ){
+                
+                init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb);
+                
+                perm_seed++;
+                permute_cols(perm_seed, m, k, &A[0], lda);
+                permute_rows(perm_seed, k, n, &B[0], ldb);
 #endif
-#ifndef DRYRUN
-        write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, DGEMM_IMPL, input_type, SCALING_FACTOR, m, n, seed);
+
+            init_zero_matrix(m, n, &C[0], ldc);
+            dgemm_wrapper(transa, transb, m, n, k, alpha, &A[0], lda, &B[0], ldb, beta, &C[0], ldc);
+
+#if defined(OUTER_PERMUTE)
+            permute_rows_inv(seed, m, k, &C[0], ldc);
+            permute_cols_inv(seed + OUTER_PERMUTE, k, n, &C[0], ldc);
 #endif
-        abs_matrix(m, k, &A_ext[0], lda);
-        abs_matrix(m, k, &B_ext[0], ldb);
-        init_zero_matrix(m, n, &C_ext[0], ldc);
-        ldgemm_(&transpose, &transpose, &m, &n, &k, &alpha_ext, &A_ext[0], &lda, &B_ext[0], &ldb, &beta_ext, &C_ext[0], &ldc);
-#ifdef PERMUTE_ROWS_COLS
-        permute_rows_inv(seed, dim, &C_ext[0], ldc);
-        permute_cols_inv(seed + PERMUTE_ROWS_COLS, dim, &C_ext[0], ldc);
+
+#if defined(VERBOSE)
+            printf("C matrix:\n");
+            print_matrix_to_stdout_sci(m, n, &C[0], ldc);
 #endif
-#ifndef DRYRUN
-        string new_name = "ABS_A_AND_B_";
-        new_name = new_name + DGEMM_IMPL;
-        write_matrix_to_hdf5(h5_file, &C_ext[0], ldc, new_name, input_type, SCALING_FACTOR, m, n, seed);
+
+#if defined(OUTER_PERMUTE) || defined(INNER_PERMUTE)
+                calculate_relative_errors(m, n, &C[0], ldc, &C_ref[0], ldc, &rel_errors[0], ldc);
+            }
+
+            std::string input_type = INPUT_TYPE;
+#if defined(OUTER_PERMUTE)
+            input_type += "_w_outer_permute";
 #endif
+#if defined(INNER_PERMUTE)
+            input_type += "_w_inner_permute";
+#endif
+            std::string path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, input_type, m, n, k, s, seed, &rel_errors[0]);
+            dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");
+            display_distribution_stats(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");
+
 #else
-        init_zero_matrix(m, n, &C[0], ldc);
-#ifdef CUDA
-        cublas_dgemm_wrapper(m, n, k, &A[0], lda, &B[0], ldb, &C[0], ldc);
-#else
-        dgemm_(&transpose, &transpose, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C[0], &ldc);
+            std::string path_string = OUTPUT_DIR + construct_metadata_path("C_ref", INPUT_TYPE, m, n, k, s, seed, &C_ref[0]);
+            if ( ! load_matrix(path_string + "/values.bin", m, n, &C_ref[0], ldc ) ){
+                init_zero_matrix(m, n, &C_ref[0], ldc);
+                reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C_ref[0], &ldc);
+                dump_matrix(m, n, &C_ref[0], ldc, path_string + "/values.bin");
+            }
+
+            path_string = OUTPUT_DIR + construct_metadata_path("C_ref_abs", INPUT_TYPE, m, n, k, s, seed, &C_ref[0]);
+            if ( ! load_matrix(path_string + "/values.bin", m, n, &C_ref_abs[0], ldc ) ){
+                abs_matrix(m, k, &A[0], lda);
+                abs_matrix(m, k, &B[0], ldb);
+                init_zero_matrix(m, n, &C_ref_abs[0], ldc);
+                reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C_ref_abs[0], &ldc);
+                dump_matrix(m, n, &C_ref_abs[0], ldc, path_string + "/values.bin");
+            }
+
+            init_zero_matrix(m, n, &rel_errors[0], ldc);
+            init_zero_matrix(m, n, &f_of_n[0], ldc);
+            calculate_relative_errors(m, n, &C[0], ldc, &C_ref[0], ldc, &rel_errors[0], ldc);
+            calculate_f_of_n(m, n, &C[0], ldc, &C_ref[0], ldc, &C_ref_abs[0], ldc, &f_of_n[0], ldc);
+            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s, seed, &C_ref[0]);
+            dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");
+            dump_matrix(m, n, &f_of_n[0], ldc, path_string + "/f_of_n.bin");
+            display_distribution_stats(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");
 #endif
-#ifdef PERMUTE_ROWS_COLS
-        permute_rows_inv(seed, dim, &C[0], ldc);
-        permute_cols_inv(seed + PERMUTE_ROWS_COLS, dim, &C[0], ldc);
-#endif
-#ifdef VERBOSE
-        printf("C matrix:\n");
-        print_matrix_to_stdout_sci(m, n, &C[0], ldc);
-#endif
-#ifndef DRYRUN
-        write_matrix_to_hdf5(h5_file, &C[0], ldc, DGEMM_IMPL, input_type, SCALING_FACTOR, m, n, seed);
-#endif
-#endif
-#if defined(PERMUTE_ROWS_COLS) || defined(PERMUTE_DOT_PRODUCTS)
+        }
     }
-#endif
-    }
-#ifndef DRYRUN
-    H5Fclose(h5_file.getId());
-#endif
     return 0;
 }

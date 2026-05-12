@@ -191,7 +191,7 @@ void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, c
 }
 
 template <typename T>
-void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb, double max_exponent ){
+void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb, int log2_max_scl_factor ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -247,16 +247,16 @@ void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, c
         std::shuffle(nonzero_mask.begin(), nonzero_mask.end(), gen);
         for ( int t = 0; t < dim; ++t ){
             if ( target_rows_cols_with_nonzero_mask[s] && nonzero_mask[t] ){
-                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], -1.0 * max_exponent);
-                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], -1.0 * max_exponent);
+                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], -1.0 * log2_max_scl_factor);
+                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], -1.0 * log2_max_scl_factor);
             }
             else if ( sparsity_mask_A[t] ){
                 A[target_rows_idx_A[s] + t*lda] = 0.0;
-                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], max_exponent);
+                B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], log2_max_scl_factor);
             }
             else{
                 B[t + target_cols_idx_B[s]*ldb] = 0.0;
-                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], max_exponent);
+                A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], log2_max_scl_factor);
             }
         }
     }
@@ -264,7 +264,7 @@ void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, c
     return;
 }
 
-void init_test2a_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
+void init_test2a_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, int log2_max_scl_factor ){
 
     std::vector<double> x(dim);
 
@@ -276,7 +276,7 @@ void init_test2a_matrices( int seed, const int dim, double *A, const int lda, do
 
     for ( int i = 0; i < dim; ++i ){
         x[i] = generator(gen);
-        exponents[i] = ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) );
+        exponents[i] = ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) );
     }
 
     std::shuffle(exponents.begin(), exponents.end(), gen);
@@ -299,12 +299,12 @@ void init_test2a_matrices( int seed, const int dim, double *A, const int lda, do
     }
 }
 
-void init_test2b_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
+void init_test2b_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, int log2_max_scl_factor ){
 
     std::vector<double> unpermuted_A(dim * dim);
     std::vector<double> unpermuted_B(dim * dim);
 
-    init_test2a_matrices(seed, dim, &unpermuted_A[0], dim, &unpermuted_B[0], dim, max_exponent);
+    init_test2a_matrices(seed, dim, &unpermuted_A[0], dim, &unpermuted_B[0], dim, log2_max_scl_factor);
 
     // circular shifting
     for ( int i = 1; i < dim; ++i ){
@@ -348,9 +348,9 @@ void init_test2b_matrices( int seed, const int dim, double *A, const int lda, do
     }
 }
 
-void init_test2c_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
+void init_test2c_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, int log2_max_scl_factor ){
 
-    init_test2b_matrices(seed, dim, A, lda, B, ldb, max_exponent);
+    init_test2b_matrices(seed, dim, A, lda, B, ldb, log2_max_scl_factor);
 
     std::vector<bool> target_vector_mask(dim);
     std::vector<bool> negation_mask(dim);
@@ -414,7 +414,7 @@ void init_test2c_matrices( int seed, const int dim, double *A, const int lda, do
     }
 }
 
-void init_test3_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
+void init_test3_matrices( int seed, const int dim, double *A, const int lda, double *B, const int ldb, int log2_max_scl_factor ){
         
     init_uniform_random_matrices( static_cast<double>(1.0), static_cast<double>(2.0), seed, dim, dim, dim, A, lda, B, ldb );
     
@@ -424,8 +424,8 @@ void init_test3_matrices( int seed, const int dim, double *A, const int lda, dou
     std::vector<double> diag_D2(dim);
 
     for ( int i = 0; i < dim; ++i ){
-        diag_D1[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) ));
-        diag_D2[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) ));
+        diag_D1[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) ));
+        diag_D2[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) ));
     }
 
     for ( int i = 0; i < dim/2; i = i + 2 ){
@@ -444,7 +444,7 @@ void init_test3_matrices( int seed, const int dim, double *A, const int lda, dou
     }
 }
 
-void init_rubric_baseline( int seed, const int dim, double *A, const int lda, double *B, const int ldb, double max_exponent ){
+void init_rubric_baseline( int seed, const int dim, double *A, const int lda, double *B, const int ldb, int log2_max_scl_factor ){
 
     std::vector<double> x(dim);
 
@@ -456,7 +456,7 @@ void init_rubric_baseline( int seed, const int dim, double *A, const int lda, do
 
     for ( int i = 0; i < dim; ++i ){
         x[i] = generator(gen);
-        exponents[i] = ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) );
+        exponents[i] = ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) );
     }
 
     std::shuffle(exponents.begin(), exponents.end(), gen);
@@ -480,7 +480,7 @@ void init_rubric_baseline( int seed, const int dim, double *A, const int lda, do
 }
 
 template <typename T>
-void init_matrices( std::string type, int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
+void init_matrices( std::string type, const int log2_max_scl_factor, const int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb ){
     if ( type == "none" ){
         assert(false && "No input type specified." );
     }
@@ -507,34 +507,22 @@ void init_matrices( std::string type, int seed, const int m, const int n, const 
             init_test1b_matrices( seed, m, A, lda, B, ldb );
         }
         else if ( type == "test1c" ){
-            double max_exponent = SCALING_FACTOR;
-            assert( !std::isnan(max_exponent) );
-            init_test1c_matrices( seed, m, A, lda, B, ldb, max_exponent );
+            init_test1c_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor );
         }
         else if ( type == "test2a" ){
-            double max_exponent = SCALING_FACTOR;
-            assert( !std::isnan(max_exponent) );
-            init_test2a_matrices( seed, m, A, lda, B, ldb, max_exponent);
+            init_test2a_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor);
         }
         else if ( type == "test2b" ){
-            double max_exponent = SCALING_FACTOR;
-            assert( !std::isnan(max_exponent) );
-            init_test2b_matrices( seed, m, A, lda, B, ldb, max_exponent);
+            init_test2b_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor);
         }
         else if ( type == "test2c" ){
-            double max_exponent = SCALING_FACTOR;
-            assert( !std::isnan(max_exponent) );
-            init_test2c_matrices( seed, m, A, lda, B, ldb, max_exponent);
+            init_test2c_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor);
         }
         else if ( type == "test3" ){
-            double max_exponent = SCALING_FACTOR;
-            assert( !std::isnan(max_exponent) );
-            init_test3_matrices( seed, m, A, lda, B, ldb, max_exponent );
+            init_test3_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor );
         }
         else if ( type == "rubric_baseline" ){
-            double max_exponent = SCALING_FACTOR;
             int dim = m;
-            assert( !std::isnan(max_exponent) );
 
             init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
             
@@ -544,7 +532,7 @@ void init_matrices( std::string type, int seed, const int m, const int n, const 
             std::vector<int> exponents(dim);
 
             for ( int i = 0; i < dim; ++i ){
-                exponents[i] = ((-1 * dim / 2) + 1 + i) * (max_exponent / ( dim / 2 ) );
+                exponents[i] = ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) );
             }
 
             std::shuffle(exponents.begin(), exponents.end(), gen);

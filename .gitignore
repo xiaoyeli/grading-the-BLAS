@@ -1,6 +1,8 @@
-main
-*.h5
-*.so
-*.o
-__*
 .*
+__*
+*.o
+*.so
+submodules
+bin
+lib
+results
