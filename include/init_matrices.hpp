@@ -276,8 +276,10 @@ void init_test2a_matrices( int seed, const int dim, double *A, const int lda, do
 
     for ( int i = 0; i < dim; ++i ){
         x[i] = generator(gen);
-        exponents[i] = ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) );
+        exponents[i] = ((-1 * dim / 2) + 1 + i) * ((double) log2_max_scl_factor / ( dim / 2 ) );
+        printf("%d ", exponents[i]);
     }
+    printf("\n");
 
     std::shuffle(exponents.begin(), exponents.end(), gen);
 
@@ -424,8 +426,8 @@ void init_test3_matrices( int seed, const int dim, double *A, const int lda, dou
     std::vector<double> diag_D2(dim);
 
     for ( int i = 0; i < dim; ++i ){
-        diag_D1[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) ));
-        diag_D2[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) ));
+        diag_D1[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * ((double) log2_max_scl_factor / ( dim / 2 ) ));
+        diag_D2[i] = std::ldexp(generator(gen), ((-1 * dim / 2) + 1 + i) * ((double) log2_max_scl_factor / ( dim / 2 ) ));
     }
 
     for ( int i = 0; i < dim/2; i = i + 2 ){
@@ -456,7 +458,7 @@ void init_rubric_baseline( int seed, const int dim, double *A, const int lda, do
 
     for ( int i = 0; i < dim; ++i ){
         x[i] = generator(gen);
-        exponents[i] = ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) );
+        exponents[i] = ((-1 * dim / 2) + 1 + i) * ((double) log2_max_scl_factor / ( dim / 2 ) );
     }
 
     std::shuffle(exponents.begin(), exponents.end(), gen);
@@ -532,7 +534,7 @@ void init_matrices( std::string type, const int log2_max_scl_factor, const int s
             std::vector<int> exponents(dim);
 
             for ( int i = 0; i < dim; ++i ){
-                exponents[i] = ((-1 * dim / 2) + 1 + i) * (log2_max_scl_factor / ( dim / 2 ) );
+                exponents[i] = ((-1 * dim / 2) + 1 + i) * ((double) log2_max_scl_factor / ( dim / 2 ) );
             }
 
             std::shuffle(exponents.begin(), exponents.end(), gen);
