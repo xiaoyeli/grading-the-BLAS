@@ -10,14 +10,12 @@
 #include <algorithm>
 #include <filesystem>
 
-template <typename T>
-std::string construct_metadata_path( std::string primary_identifier, std::string secondary_identifier, const int m, const int n, const int k, const int s, const int seed, T *A ){
+inline std::string construct_metadata_path( std::string primary_identifier, std::string secondary_identifier, const int m, const int n, const int k, const int s, const int seed ){
     std::string metadata_path = primary_identifier;
     metadata_path += "/" + secondary_identifier;
     metadata_path += "/m" + std::to_string(m) + "_n" + std::to_string(n) + "_k" + std::to_string(k);
     metadata_path += "/scl" + std::to_string(s);
     metadata_path += "/seed" + std::to_string(seed);
-    metadata_path += "/fp" + std::to_string(sizeof(A[0]) * 8);
     return metadata_path;
 }
 

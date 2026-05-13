@@ -3,21 +3,69 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd ${REPO_ROOT}
 
-DGEMM_IMPLEMENTATIONS=(
-    NAIVE_TRIPLE_LOOP_EXTENDED_PRECISION
-    NAIVE_TRIPLE_LOOP_FP64
-    OZIMMU
-    GEMMUL8_ACCU
-    GEMMUL8_FAST
-    STRASSEN
-    STRASSEN_DABD_SCALING
-    STRASSEN_DABD_SCALING_AND_ZEROING
+CONFIG_FILES=(
+    ./config_files/config_naive_triple_loop.sh.template
+    ./config_files/config_ozimmu.sh.template
+    ./config_files/config_gemmul8_accu.sh.template
+    ./config_files/config_gemmul8_fast.sh.template
+    ./config_files/config_strassen.sh.template
 )
 
-for impl in "${DGEMM_IMPLEMENTATIONS[@]}"
+for x in "${CONFIG_FILES[@]}"
 do
-    echo "================== Testing ${impl}"
-    make run MIN_DIM=32 MAX_DIM=1024 DGEMM_IMPL=${impl} INPUT_TYPE=test1a
-    make run MIN_DIM=32 MAX_DIM=1024 DGEMM_IMPL=${impl} INPUT_TYPE=test1b
-    make run MIN_DIM=32 MAX_DIM=1024 SCALING_FACTOR=500 DGEMM_IMPL=${impl} INPUT_TYPE=test1c
+    cp ${x} config.sh
+    
+    for test in test1a test1b
+    do
+        set -a
+        source config.sh 5 5 0 0 100 ${test} 0 0 0 0 1
+        set +a
+        
+        LIBRARY_PATH=${LIBRARY_PATH}:$(dirname ${SO_PATH}) LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(dirname ${SO_PATH}) make run
+    done
+done
+
+for x in "${CONFIG_FILES[@]}"
+do
+    cp ${x} config.sh
+    
+    for test in test1c
+    do
+        set -a
+        source config.sh 5 5 500 500 100 ${test} 0 0 0 0 1
+        set +a
+        
+        LIBRARY_PATH=${LIBRARY_PATH}:$(dirname ${SO_PATH}) LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(dirname ${SO_PATH}) make run
+    done
+done
+
+CONFIG_FILES=(
+    ./config_files/config_strassen.sh.template
+    ./config_files/config_strassen_w_zeroing.sh.template
+)
+
+for x in "${CONFIG_FILES[@]}"
+do
+    cp ${x} config.sh
+    for test in test1a test1b
+    do
+        set -a
+        source config.sh 5 5 0 0 100 ${test} 0 0 1 0 1
+        set +a
+        
+        LIBRARY_PATH=${LIBRARY_PATH}:$(dirname ${SO_PATH}) LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(dirname ${SO_PATH}) make run
+    done
+done
+
+for x in "${CONFIG_FILES[@]}"
+do
+    cp ${x} config.sh
+    for test in test1c
+    do
+        set -a
+        source config.sh 5 5 500 500 100 ${test} 0 0 1 0 1
+        set +a
+        
+        LIBRARY_PATH=${LIBRARY_PATH}:$(dirname ${SO_PATH}) LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(dirname ${SO_PATH}) make run
+    done
 done

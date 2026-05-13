@@ -38,6 +38,14 @@ ifeq ($(INNER_SCALING),1)
 	CPPFLAGS += -DINNER_SCALING
 endif
 
+ifeq ($(DUMP_A_B),1)
+	CPPFLAGS += -DDUMP_A_B
+endif
+
+ifeq ($(DUMP_C),1)
+	CPPFLAGS += -DDUMP_C
+endif
+
 MAIN_SRCS := $(SRC_DIR)/main.cpp $(SRC_DIR)/dgemm_wrapper.cpp
 STATS_SRCS := $(SRC_DIR)/compute_distribution_stats.cpp
 

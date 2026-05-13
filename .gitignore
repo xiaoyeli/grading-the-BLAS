@@ -2,6 +2,7 @@
 __*
 *.o
 *.so
+*.png
 submodules
 bin
 lib

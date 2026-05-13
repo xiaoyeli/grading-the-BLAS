@@ -23,6 +23,7 @@ int main(){
 #if defined(INNER_SCALING)
     dgemm_impl_name += "_w_inner_scaling";
 #endif
+    std::string path_string;
 
     char transa = 'N';
     char transb = 'N';
@@ -65,14 +66,23 @@ int main(){
             printf("B matrix:\n");
             print_matrix_to_stdout_sci(k, n, &B[0], ldb);
 #endif
+#if defined(DUMP_A_B)
+            // dump A and B; note that dump_matrix overwrites every time
+            path_string = OUTPUT_DIR + construct_metadata_path("A", INPUT_TYPE, m, n, k, s, seed);
+            dump_matrix(m, k, &A[0], lda, path_string + "/values.bin");
+            path_string = OUTPUT_DIR + construct_metadata_path("B", INPUT_TYPE, m, n, k, s, seed);
+            dump_matrix(k, n, &B[0], ldb, path_string + "/values.bin");
+#endif
 
 #if defined(INNER_PERMUTE) || defined(OUTER_PERMUTE)
+            // calculate ground truth before permuting A and B using the DGEMM implementation under test
             init_zero_matrix(m, n, &C_ref[0], ldc);
             init_zero_matrix(m, n, &rel_errors[0], ldc);
-            reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C_ref[0], &ldc);
+            dgemm_wrapper(transa, transb, m, n, k, alpha, &A[0], lda, &B[0], ldb, beta, &C_ref[0], ldc);
 #endif
 
 #if defined(OUTER_PERMUTE)
+            // set up OUTER_PERMUTE iterations
             int perm_seed = 0;
             for ( int i = 0; i < OUTER_PERMUTE; ++i ){
                 
@@ -82,6 +92,7 @@ int main(){
                 permute_rows(perm_seed, m, k, &A[0], lda);
                 permute_cols(perm_seed + OUTER_PERMUTE, k, n, &B[0], ldb);
 #elif defined(INNER_PERMUTE)
+            // set up INNER_PERMUTE iterations
             int perm_seed = 0;
             for ( int i = 0; i < INNER_PERMUTE; ++i ){
                 
@@ -91,44 +102,65 @@ int main(){
                 permute_cols(perm_seed, m, k, &A[0], lda);
                 permute_rows(perm_seed, k, n, &B[0], ldb);
 #endif
-
-            init_zero_matrix(m, n, &C[0], ldc);
-            dgemm_wrapper(transa, transb, m, n, k, alpha, &A[0], lda, &B[0], ldb, beta, &C[0], ldc);
+                // call the DGEMM implementation under test
+                init_zero_matrix(m, n, &C[0], ldc);
+                dgemm_wrapper(transa, transb, m, n, k, alpha, &A[0], lda, &B[0], ldb, beta, &C[0], ldc);
 
 #if defined(OUTER_PERMUTE)
-            permute_rows_inv(seed, m, k, &C[0], ldc);
-            permute_cols_inv(seed + OUTER_PERMUTE, k, n, &C[0], ldc);
+                // for OUTER_PERMUTE, unpermute after DGEMM
+                permute_rows_inv(seed, m, k, &C[0], ldc);
+                permute_cols_inv(seed + OUTER_PERMUTE, k, n, &C[0], ldc);
 #endif
 
 #if defined(VERBOSE)
-            printf("C matrix:\n");
-            print_matrix_to_stdout_sci(m, n, &C[0], ldc);
+                printf("C matrix:\n");
+                print_matrix_to_stdout_sci(m, n, &C[0], ldc);
 #endif
 
 #if defined(OUTER_PERMUTE) || defined(INNER_PERMUTE)
+                // calculate componentwise error and keeping the maximum over all permutations tested
                 calculate_relative_errors(m, n, &C[0], ldc, &C_ref[0], ldc, &rel_errors[0], ldc);
+
+#if defined(DUMP_C)
+                // dump ALL of the C matrices computed over all permutations tested
+                std::string full_input_type_string = INPUT_TYPE;
+#if defined(OUTER_PERMUTE)
+                full_input_type_string += "_w_outer_permute_" + std::to_string(perm_seed);
+#elif defined(INNER_PERMUTE)
+                full_input_type_string += "_w_inner_permute_" + std::to_string(perm_seed);
+#endif
+                path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, full_input_type_string, m, n, k, s, seed);
+                dump_matrix(m, n, &C[0], ldc, path_string + "/values.bin");
+#endif
             }
 
-            std::string input_type = INPUT_TYPE;
+            // dump the maximum componentwise error with respect to A*B using the implementation under test over all permutations tested
+            std::string full_input_type_string = INPUT_TYPE;
 #if defined(OUTER_PERMUTE)
-            input_type += "_w_outer_permute";
+            full_input_type_string += "_w_outer_permute_" + std::to_string(perm_seed);
+#elif defined(INNER_PERMUTE)
+            full_input_type_string += "_w_inner_permute_" + std::to_string(perm_seed);
 #endif
-#if defined(INNER_PERMUTE)
-            input_type += "_w_inner_permute";
-#endif
-            std::string path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, input_type, m, n, k, s, seed, &rel_errors[0]);
+            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, full_input_type_string, m, n, k, s, seed);
             dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");
             display_distribution_stats(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");
 
 #else
-            std::string path_string = OUTPUT_DIR + construct_metadata_path("C_ref", INPUT_TYPE, m, n, k, s, seed, &C_ref[0]);
+
+#if defined(DUMP_C)
+            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s, seed);
+            dump_matrix(m, n, &C[0], ldc, path_string + "/values.bin");
+#endif
+            // either load a cached C_ref or compute from scratch and cache for later
+            path_string = OUTPUT_DIR + construct_metadata_path("C_ref", INPUT_TYPE, m, n, k, s, seed);
             if ( ! load_matrix(path_string + "/values.bin", m, n, &C_ref[0], ldc ) ){
                 init_zero_matrix(m, n, &C_ref[0], ldc);
                 reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C_ref[0], &ldc);
                 dump_matrix(m, n, &C_ref[0], ldc, path_string + "/values.bin");
             }
 
-            path_string = OUTPUT_DIR + construct_metadata_path("C_ref_abs", INPUT_TYPE, m, n, k, s, seed, &C_ref[0]);
+            // either load a cached C_ref_abs or compute from scratch and cache for later
+            path_string = OUTPUT_DIR + construct_metadata_path("C_ref_abs", INPUT_TYPE, m, n, k, s, seed);
             if ( ! load_matrix(path_string + "/values.bin", m, n, &C_ref_abs[0], ldc ) ){
                 abs_matrix(m, k, &A[0], lda);
                 abs_matrix(m, k, &B[0], ldb);
@@ -137,11 +169,12 @@ int main(){
                 dump_matrix(m, n, &C_ref_abs[0], ldc, path_string + "/values.bin");
             }
 
+            // compute and dump componentwise relative error and componentwise f(n)
             init_zero_matrix(m, n, &rel_errors[0], ldc);
             init_zero_matrix(m, n, &f_of_n[0], ldc);
             calculate_relative_errors(m, n, &C[0], ldc, &C_ref[0], ldc, &rel_errors[0], ldc);
             calculate_f_of_n(m, n, &C[0], ldc, &C_ref[0], ldc, &C_ref_abs[0], ldc, &f_of_n[0], ldc);
-            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s, seed, &C_ref[0]);
+            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s, seed);
             dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");
             dump_matrix(m, n, &f_of_n[0], ldc, path_string + "/f_of_n.bin");
             display_distribution_stats(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.bin");

@@ -82,7 +82,7 @@ void dgemm_wrapper( const char transa, const char transb,
 
     // find inf norms of rows of A
     for ( int i = 0; i < m; ++i ){
-        A_row_norms[i] = std::abs(A[m + 0 * lda]);
+        A_row_norms[i] = std::abs(A[i + 0 * lda]);
         for ( int j = 1; j < k; ++j ){
             A_row_norms[i] = std::abs(A[i + j*lda]) > A_row_norms[i] ? std::abs(A[i + j*lda]) : A_row_norms[i];
         }
@@ -99,10 +99,10 @@ void dgemm_wrapper( const char transa, const char transb,
     // scale to yield unit norms
     for ( int i = 0; i < k; ++i ){
         for ( int j = 0; j < m; ++j ){
-            A[j + i*lda] = A[j + i*lda] / A_row_norms[j];
+            A[j + i*lda] = A_row_norms[j] != 0.0 ? A[j + i*lda] / A_row_norms[j] : 0.0;
         }
         for ( int j = 0; j < n; ++j ){
-            B[i + j*ldb] = B[i + j*ldb] / B_col_norms[j];
+            B[i + j*ldb] = B_col_norms[j] != 0.0 ? B[i + j*ldb] / B_col_norms[j] : 0.0;
         }
     }
 #endif

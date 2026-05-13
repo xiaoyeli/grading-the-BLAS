@@ -1,0 +1,17 @@
+
+STRASSEN_SO  := libstrassen_dgemm.so
+STRASSEN_ZEROING_SO  := libstrassen_zeroing_dgemm.so
+NAIVE_TRIPLE_LOOP_SO := libnaive_triple_loop_dgemm.so
+
+all: $(STRASSEN_SO) $(STRASSEN_ZEROING_SO) $(NAIVE_TRIPLE_LOOP_SO)
+
+$(STRASSEN_SO): strassen_dgemm.cpp
+	g++ -O0 -fPIC -shared $< -o $@
+
+$(STRASSEN_ZEROING_SO): strassen_dgemm.cpp
+	g++ -O0 -fPIC -DZEROING -shared $< -o $@
+
+$(NAIVE_TRIPLE_LOOP_SO): naive_triple_loop_dgemm.cpp
+	g++ -O0 -fPIC -shared $< -o $@
+
+.PHONY: all
