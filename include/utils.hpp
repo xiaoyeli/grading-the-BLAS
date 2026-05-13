@@ -9,6 +9,7 @@
 #include <random>
 #include <algorithm>
 #include <filesystem>
+#include <cfloat>
 
 inline std::string construct_metadata_path( std::string primary_identifier, std::string secondary_identifier, const int m, const int n, const int k, const int s, const int seed ){
     std::string metadata_path = primary_identifier;
@@ -21,13 +22,19 @@ inline std::string construct_metadata_path( std::string primary_identifier, std:
 
 template <typename T>
 void calculate_relative_errors( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, double *rel_errors, const int ldc3 ){
+    const long double flush_threshold = static_cast<long double>(DBL_TRUE_MIN);
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
             const long double ci  = static_cast<long double>(C[i + j*ldc1]);
             const long double cri = static_cast<long double>(C_ref[i + j*ldc2]);
             const long double abs_err = std::abs(ci - cri);
             const long double denom   = std::abs(ci) + std::abs(cri);
-            const double rel_err = static_cast<double>(abs_err == 0.0L ? 0.0L : abs_err / denom);
+            const long double rel_err_ld = abs_err == 0.0L ? 0.0L : abs_err / denom;
+            const double rel_err = static_cast<double>(
+                rel_err_ld != 0.0L && rel_err_ld < flush_threshold
+                ? flush_threshold
+                : rel_err_ld
+            );
             if ( rel_err > rel_errors[i + j*ldc3] ){
                 rel_errors[i + j*ldc3] = rel_err;
             }
