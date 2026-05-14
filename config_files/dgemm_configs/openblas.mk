@@ -7,7 +7,7 @@ RUN_PREFIX :=                # optional; string prepended to execution command, 
 # === compilation tweaks ====
 CXX := g++
 USE_CUDA := 0	# if USE_CUDA=1, set CXX=nvcc
-CXXFLAGS := 	# optional
+CXXFLAGS := -Wl,-rpath,$(dir $(SO_PATH))
 
 # === advanced options ===
 OUTER_SCALING := 0  # when OUTER_SCALING=1, calculate D1_inv * ( (D1 * A) * (B * D2) ) * D2_inv
