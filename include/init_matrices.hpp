@@ -277,9 +277,7 @@ void init_test2a_matrices( int seed, const int dim, double *A, const int lda, do
     for ( int i = 0; i < dim; ++i ){
         x[i] = generator(gen);
         exponents[i] = ((-1 * dim / 2) + 1 + i) * ((double) log2_max_scl_factor / ( dim / 2 ) );
-        printf("%d ", exponents[i]);
     }
-    printf("\n");
 
     std::shuffle(exponents.begin(), exponents.end(), gen);
 
