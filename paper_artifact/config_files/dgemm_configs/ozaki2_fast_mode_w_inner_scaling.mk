@@ -1,7 +1,7 @@
 # === target DGEMM implementation ===
 DGEMM_IMPL_NAME := GEMMUL8_FAST_MODE_2.0.10_GNU_13.2_NVCC_12.9_DEFAULT_NVCC8.0_MAX_MODULI
-SO_PATH := $(CUBLAS_SO_PATH)
-LDFLAGS := -L$(dir $(SO_PATH)) -lcublas
+LIB_PATH := $(CUBLAS_SO_PATH)
+LDFLAGS := -L$(dir $(LIB_PATH)) -lcublas
 RUN_PREFIX := LD_PRELOAD=$(GEMMUL8_SO_PATH) GEMMUL8_NUM_MOD_D=20 GEMMUL8_FASTMODE_D=1               # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"
 
 # === compilation tweaks ====

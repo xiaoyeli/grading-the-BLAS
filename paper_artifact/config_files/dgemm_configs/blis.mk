@@ -1,13 +1,13 @@
 # === target DGEMM implementation ===
 DGEMM_IMPL_NAME := BLIS_2.0_GNU_13.2_DEFAULT_x86_64_zen3
-SO_PATH := $(BLIS_SO_PATH)
-LDFLAGS := -L$(dir $(SO_PATH)) -lblis
+LIB_PATH := $(BLIS_SO_PATH)
+LDFLAGS := -L$(dir $(LIB_PATH)) -lblis
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"
 
 # === compilation tweaks ====
 CXX := g++
 USE_CUDA := 0	# if USE_CUDA=1, set CXX=nvcc
-CXXFLAGS := -Wl,-rpath,$(dir $(SO_PATH))
+CXXFLAGS := -Wl,-rpath,$(dir $(LIB_PATH))
 
 # === advanced options ===
 OUTER_SCALING := 0  # when OUTER_SCALING=1, calculate D1_inv * ( (D1 * A) * (B * D2) ) * D2_inv

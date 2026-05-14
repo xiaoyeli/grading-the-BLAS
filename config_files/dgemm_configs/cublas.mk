@@ -1,7 +1,7 @@
 # === target DGEMM implementation ===
 DGEMM_IMPL_NAME := CUBLAS # e.g., CUBLAS_12.9_DEFAULT_NVCC8.0
-SO_PATH := $(CUBLAS_SO_PATH)
-LDFLAGS := -L$(dir $(SO_PATH)) -lcublas
+LIB_PATH := $(CUBLAS_SO_PATH)
+LDFLAGS := -L$(dir $(LIB_PATH)) -lcublas
 RUN_PREFIX :=      # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"
 
 # === compilation tweaks ====

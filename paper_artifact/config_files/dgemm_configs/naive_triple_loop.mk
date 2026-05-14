@@ -1,13 +1,13 @@
 # === target DGEMM implementation ===
 DGEMM_IMPL_NAME := NAIVE_TRIPLE_LOOP_GNU_13.2_O0_x86_64_zen3
-SO_PATH := $(NAIVE_TRIPLE_LOOP_SO_PATH)
-LDFLAGS := -L$(dir $(SO_PATH)) -lnaive_triple_loop_dgemm
+LIB_PATH := $(NAIVE_TRIPLE_LOOP_SO_PATH)
+LDFLAGS := -L$(dir $(LIB_PATH)) -lnaive_triple_loop_dgemm
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"
 
 # === compilation tweaks ====
 CXX := g++
 USE_CUDA := 0	# if USE_CUDA=1, set CXX=nvcc
-CXXFLAGS := -Wl,-rpath,$(dir $(SO_PATH))
+CXXFLAGS := -Wl,-rpath,$(dir $(LIB_PATH))
 
 # === advanced options ===
 OUTER_SCALING := 0  # when OUTER_SCALING=1, calculate D1_inv * ( (D1 * A) * (B * D2) ) * D2_inv

@@ -1,7 +1,7 @@
 # === target DGEMM implementation ===
 DGEMM_IMPL_NAME := OZIMMU_08eea92_GNU_13.2_NVCC_12.9_DEFAULT_NVCC8.0_MAX_SLICES
-SO_PATH := $(CUBLAS_SO_PATH)
-LDFLAGS := -L$(dir $(SO_PATH)) -lcublas
+LIB_PATH := $(CUBLAS_SO_PATH)
+LDFLAGS := -L$(dir $(LIB_PATH)) -lcublas
 RUN_PREFIX := LD_PRELOAD=$(OZIMMU_SO_PATH) OZIMMU_COMPUTE_MODE=fp64_int8_18 OZIMMU_INTERCEPT_THRESHOLD_M=2 OZIMMU_INTERCEPT_THRESHOLD_N=2 OZIMMU_INTERCEPT_THRESHOLD_K=2               # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"
 
 # === compilation tweaks ====
