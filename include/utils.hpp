@@ -11,12 +11,11 @@
 #include <filesystem>
 #include <cfloat>
 
-inline std::string construct_metadata_path( std::string primary_identifier, std::string secondary_identifier, const int m, const int n, const int k, const int s, const int seed ){
-    std::string metadata_path = primary_identifier;
-    metadata_path += "/" + secondary_identifier;
-    metadata_path += "/m" + std::to_string(m) + "_n" + std::to_string(n) + "_k" + std::to_string(k);
+inline std::string construct_metadata_path( std::string matrix_name, std::string input_name, const int m, const int n, const int k, const int s ){
+    std::string metadata_path = input_name;
     metadata_path += "/scl" + std::to_string(s);
-    metadata_path += "/seed" + std::to_string(seed);
+    metadata_path += "/m" + std::to_string(m) + "_n" + std::to_string(n) + "_k" + std::to_string(k);
+    metadata_path += "/" + matrix_name;
     return metadata_path;
 }
 
@@ -29,12 +28,7 @@ void calculate_relative_errors( const int m, const int n, const double *C, const
             const long double cri = static_cast<long double>(C_ref[i + j*ldc2]);
             const long double abs_err = std::abs(ci - cri);
             const long double denom   = std::abs(ci) + std::abs(cri);
-            const long double rel_err_ld = abs_err == 0.0L ? 0.0L : abs_err / denom;
-            const double rel_err = static_cast<double>(
-                rel_err_ld != 0.0L && rel_err_ld < flush_threshold
-                ? flush_threshold
-                : rel_err_ld
-            );
+            const double rel_err = static_cast<double>(abs_err == 0.0L ? 0.0L : abs_err / denom);
             if ( rel_err > rel_errors[i + j*ldc3] ){
                 rel_errors[i + j*ldc3] = rel_err;
             }

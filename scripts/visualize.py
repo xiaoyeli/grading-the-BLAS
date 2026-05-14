@@ -14,7 +14,12 @@ def load_matrix(path: str) -> np.ndarray:
         raise ValueError(f"Could not extract m and n from path: {path}")
     m, n = int(match.group(1)), int(match.group(2))
 
-    data = np.fromfile(path, dtype=np.float64)
+    if path.suffix == ".fp64":
+        data = np.fromfile(path, dtype=np.float64)
+    elif path.suffix == ".fp128":
+        data = np.fromfile(path, dtype=np.float128)
+    else:
+        raise ValueError(f"file extension is not one of .fp64 or .fp128: {path}")
     
     if data.size != m * n:
         raise ValueError(f"Expected {m*n} elements, got {data.size}")
@@ -82,6 +87,22 @@ def main():
         sys.exit(1)
 
     paths = sys.argv[1:]
+
+    # Paths whose directory is one of these should come first, in this order
+    priority = ["A", "B", "C_ref", "C_ref_abs"]
+
+    def sort_key(path):
+        parts = Path(path).parts
+        for i, name in enumerate(priority):
+            if name in parts:
+                return (0, i, path)
+        return (1, 0, path)
+
+    paths = sorted(paths, key=sort_key)
+
+    # Within the "remaining" group, sort_key already orders alphabetically
+    # by path because of the trailing `path` element in the tuple.
+
     fig = plot_matrix_heatmaps(paths)
     output_path = "heatmaps.png"
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
