@@ -165,7 +165,7 @@ def main():
 
     paths = sys.argv[1:]
     fig = plot_max_vals(paths)
-    output_path = "results/max_vals.png"
+    output_path = "results/figure.png"
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 

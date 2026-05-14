@@ -83,7 +83,7 @@ def main():
     # by path because of the trailing `path` element in the tuple.
 
     fig = plot_matrix_heatmaps(paths)
-    output_path = "results/heatmaps.png"
+    output_path = "results/figure.png"
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
