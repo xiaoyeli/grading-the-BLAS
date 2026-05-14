@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 MAIN_EXE := run_test
 STATS_EXE := compute_distribution_stats
 BIN_DIR := bin
@@ -64,7 +66,7 @@ STATS_SRCS := $(SRC_DIR)/compute_distribution_stats.cpp
 
 $(MAIN_EXE): $(MAIN_SRCS)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(CPPFLAGS) -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o ./$(BIN_DIR)/$@
+	$(CXX) -std=c++17 $(CXXFLAGS) $(CPPFLAGS) -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o ./$(BIN_DIR)/$@
 
 $(STATS_EXE): $(STATS_SRCS)
 	@mkdir -p $(BIN_DIR)
