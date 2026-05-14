@@ -5,28 +5,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from pathlib import Path
 
-def load_matrix(path: str) -> np.ndarray:
-    path = Path(path)
-    
-    # Extract m and n from path
-    match = re.search(r'm(\d+)_n(\d+)', str(path))
-    if not match:
-        raise ValueError(f"Could not extract m and n from path: {path}")
-    m, n = int(match.group(1)), int(match.group(2))
-
-    if path.suffix == ".fp64":
-        data = np.fromfile(path, dtype=np.float64)
-    elif path.suffix == ".fp128":
-        data = np.fromfile(path, dtype=np.float128)
-    else:
-        raise ValueError(f"file extension is not one of .fp64 or .fp128: {path}")
-    
-    if data.size != m * n:
-        raise ValueError(f"Expected {m*n} elements, got {data.size}")
-    
-    # Column-major (Fortran order) with shape (m, n)
-    return data.reshape((m, n), order='F')
-
+from plot_utils import load_matrix
 
 def plot_matrix_heatmaps(paths, figsize_per_plot: tuple = (4, 4)) -> plt.Figure:
     if isinstance(paths, str):

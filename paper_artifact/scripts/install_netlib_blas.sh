@@ -3,6 +3,7 @@
 REPO_ROOT=$(git rev-parse --show-toplevel)
 VERSION_NUMBER=3.12.1
 
+mkdir -p ${REPO_ROOT}/submodules
 cd ${REPO_ROOT}/submodules
 
 # clean
