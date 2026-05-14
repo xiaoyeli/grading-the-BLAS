@@ -2,7 +2,8 @@
 
 REQUIRED:
 1. a path to a static or dynamic library that exposes the symbol `dgemm_` using the standard BLAS API.
-2. Python 3 or higher (for matplotlib dependency)
+2. a compiler supporting C++17
+3. Python 3 or higher (for matplotlib dependency)
 
 __Note: all paths in this README are relative to the root of this repository.__
 
