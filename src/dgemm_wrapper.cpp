@@ -110,7 +110,7 @@ void dgemm_wrapper( const char transa, const char transb,
 #if defined(USE_CUDA)
     size_t size_A = m * k * sizeof(double);
     size_t size_B = k * n * sizeof(double);
-    size_t size_C = m * n * sizeof(double);
+    size_t size_C = ldc * n * sizeof(double);
 
     cudaMalloc((void**)&d_A, size_A);
     cudaMalloc((void**)&d_B, size_B);
