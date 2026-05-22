@@ -37,10 +37,10 @@ void dgemm_wrapper( const char transa, const char transb,
 
 #if defined(INNER_SCALING) || defined(OUTER_SCALING)
     // save prescaled A and B for restoring after the DGEMM
-    std::vector<double> A_prescaled(m * k);
-    std::vector<double> B_prescaled(k * n);
-    copy_matrix(m, k, &A_prescaled[0], m, A, lda);
-    copy_matrix(k, n, &B_prescaled[0], k, B, ldb);
+    std::vector<double> A_prescaled(lda * k);
+    std::vector<double> B_prescaled(ldb * n);
+    copy_matrix(m, k, &A_prescaled[0], lda, A, lda);
+    copy_matrix(k, n, &B_prescaled[0], ldb, B, ldb);
 #endif
 
 #if defined(INNER_SCALING)
@@ -108,8 +108,8 @@ void dgemm_wrapper( const char transa, const char transb,
 #endif
 
 #if defined(USE_CUDA)
-    size_t size_A = m * k * sizeof(double);
-    size_t size_B = k * n * sizeof(double);
+    size_t size_A = lda * k * sizeof(double);
+    size_t size_B = ldb * n * sizeof(double);
     size_t size_C = ldc * n * sizeof(double);
 
     cudaMalloc((void**)&d_A, size_A);
@@ -118,9 +118,9 @@ void dgemm_wrapper( const char transa, const char transb,
     
     cudaMemcpy(d_A, &A[0], size_A, cudaMemcpyHostToDevice);
     cudaMemcpy(d_B, &B[0], size_B, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_C, C, size_C, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_C, &C[0], size_C, cudaMemcpyHostToDevice);
 
-    cublasDgemm(handle, opA, opB, m, n, k, &alpha, d_A, m, d_B, k, &beta, d_C, ldc);
+    cublasDgemm(handle, opA, opB, m, n, k, &alpha, d_A, lda, d_B, ldb, &beta, d_C, ldc);
 
     cudaMemcpy(C, d_C, size_C, cudaMemcpyDeviceToHost);
 
@@ -144,8 +144,8 @@ void dgemm_wrapper( const char transa, const char transb,
 
 #if defined(INNER_SCALING) || defined(OUTER_SCALING)
     // restore prescaled A and B
-    copy_matrix( m, k, &A[0], lda, &A_prescaled[0], m );
-    copy_matrix( k, n, &B[0], ldb, &B_prescaled[0], k );
+    copy_matrix( m, k, &A[0], lda, &A_prescaled[0], lda );
+    copy_matrix( k, n, &B[0], ldb, &B_prescaled[0], ldb );
 #endif
 
     return;
