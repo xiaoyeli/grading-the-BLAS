@@ -15,9 +15,9 @@ LOG2_INC_SCALING_FACTOR := 100  #           ...
 REFERENCE_GEMM := 2 # when REFERENCE_GEMM=1, reference is a naive triple loop GEMM in double precision
                     # when REFERENCE_GEMM=2, reference is a naive triple loop GEMM in long double precision
 
-DUMP_A_B := 0       # when DUMP_A_B=1, dump the input matrices
+DUMP_A_B := 0       # when DUMP_A_B=1, dump the binary data of the input matrices to results/raw_data
 
-DUMP_C := 0         # when DUMP_C=1, dump the output matrices
+DUMP_C := 0         # when DUMP_C=1, dump the binary data of the output matrices to results/raw_data
 
 VERBOSE := 0        # when VERBOSE=1, prints A, B, and C to stdout
 
