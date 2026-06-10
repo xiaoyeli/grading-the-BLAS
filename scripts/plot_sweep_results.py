@@ -124,12 +124,19 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
     impls = sorted(grouped.keys())
     n_impls = len(impls)
 
+    all_ds, all_scales, grids = build_heatmap_grid(grouped)
+    heatmap_cmap = mpl.cm.get_cmap('cividis')
+
     mpl.rcParams['font.family'] = 'serif'
     global FONTSIZE
     FONTSIZE = 18
+    line_w = figsize_per_plot[0]
+    heat_w = max(6.0, len(all_ds) * 1.5)
+    plot_h = max(6.0, len(all_scales) * 1.0)
     fig, axes = plt.subplots(
         n_impls, 2,
-        figsize=(figsize_per_plot[0] * 2, figsize_per_plot[1] * n_impls),
+        figsize=(line_w + heat_w, plot_h * n_impls),
+        gridspec_kw={'width_ratios': [line_w, heat_w]},
         squeeze=False,
     )
 
@@ -140,9 +147,6 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
         s: {"marker": markers[i % len(markers)]}
         for i, s in enumerate(all_scales_for_lines)
     }
-
-    all_ds, all_scales, grids = build_heatmap_grid(grouped)
-    heatmap_cmap = mpl.cm.get_cmap('cividis')
 
     line_axes = [axes[i][0] for i in range(n_impls)]
     heat_axes = [axes[i][1] for i in range(n_impls)]
@@ -163,7 +167,7 @@ def main():
     unique_dir = Path(sys.argv[1])
     WIDTH = 60
     prefix = f"━━━ Generating figure from {unique_dir} "
-    print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)) + "\n")
+    print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)))
     paths = sorted((unique_dir / "raw_data").glob("**/f_of_n.fp64"))
     if not paths:
         print(f"No f_of_n.fp64 files found under {unique_dir / 'raw_data'}")
