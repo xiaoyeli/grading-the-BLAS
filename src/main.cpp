@@ -23,7 +23,14 @@ int main(){
     dgemm_impl_name += "_w_inner_scaling";
 #endif
     const char* env_dir = std::getenv("RUN_OUTPUT_DIR");
-    std::string output_dir = env_dir ? std::string(env_dir) + "/" : "results/raw_data/";
+    if ( !env_dir ){
+        fprintf(stderr,
+            "ERROR: RUN_OUTPUT_DIR is not set.\n"
+            "       Run this binary via 'make run', which sets the output\n"
+            "       directory automatically and co-locates the config files.\n");
+        return 1;
+    }
+    std::string output_dir = std::string(env_dir) + "/";
     std::string path_string;
 
     char transa = 'N';
@@ -40,15 +47,18 @@ int main(){
     std::vector<double> rel_errors(max_m*max_n);
 
 #if defined(INNER_PERMUTE) || defined(OUTER_PERMUTE)
-    std::vector<double> C_ref(max_m*max_n);    
-#elif REFERENCE_GEMM == 1
+    std::vector<double> C_ref(max_m*max_n);
+#else
+    std::string cached_C_ref_dir = "results/cached_C_refs/";
+#if REFERENCE_GEMM == 1
     std::vector<double> C_ref(max_m*max_n);
     std::vector<double> C_ref_abs(max_m*max_n);
     std::vector<double> f_of_n(max_m*max_n);
-    #elif REFERENCE_GEMM == 2
+#elif REFERENCE_GEMM == 2
     std::vector<long double> C_ref(max_m*max_n);
     std::vector<long double> C_ref_abs(max_m*max_n);
     std::vector<double> f_of_n(max_m*max_n);
+#endif
 #endif
 
     for ( int d = LOG2_MIN_DIM; d <= LOG2_MAX_DIM; ++d ){
@@ -153,7 +163,7 @@ int main(){
             dump_matrix(m, n, &C[0], ldc, path_string + "/values.fp64");
 #endif
             // either load a cached C_ref or compute from scratch and cache for later
-            path_string = output_dir + construct_metadata_path("C_ref", INPUT_TYPE, m, n, k, s);
+            path_string = cached_C_ref_dir + construct_metadata_path("C_ref", INPUT_TYPE, m, n, k, s);
             if ( ! load_matrix(path_string + "/values.fp" + std::to_string(sizeof(C_ref[0])*8), m, n, &C_ref[0], ldc ) ){
                 init_zero_matrix(m, n, &C_ref[0], ldc);
                 reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C_ref[0], &ldc);
@@ -161,7 +171,7 @@ int main(){
             }
 
             // either load a cached C_ref_abs or compute from scratch and cache for later
-            path_string = output_dir + construct_metadata_path("C_ref_abs", INPUT_TYPE, m, n, k, s);
+            path_string = cached_C_ref_dir + construct_metadata_path("C_ref_abs", INPUT_TYPE, m, n, k, s);
             if ( ! load_matrix(path_string + "/values.fp" + std::to_string(sizeof(C_ref_abs[0])*8), m, n, &C_ref_abs[0], ldc ) ){
                 abs_matrix(m, k, &A[0], lda);
                 abs_matrix(m, k, &B[0], ldb);
