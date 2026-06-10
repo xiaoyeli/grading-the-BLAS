@@ -36,16 +36,16 @@ def plot_lines(grouped, axes_row, scale_style, value_descriptor):
             ax.plot(
                 ds, ys,
                 label=rf"$\pm 2^{{{s}}}$",
-                color=style["color"],
                 marker=style["marker"],
-                markersize=6,
+                markersize=16,
                 linewidth=1.5,
             )
-        ax.set_title(impl, fontsize=9)
-        ax.set_xlabel("dimension (m = n = k)")
-        ax.set_ylabel(f"max {value_descriptor}")
+        ax.tick_params(labelsize=FONTSIZE)
+        ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
+        ax.set_ylabel(r"$f_A(n)$", fontsize=FONTSIZE)
         ax.grid(True, which="both", linestyle=":", linewidth=0.5, alpha=0.6)
-        ax.legend(fontsize=7, loc="best", title="scale factor", title_fontsize=8)
+        ax.legend(fontsize=FONTSIZE, loc='upper left', bbox_to_anchor=(1.01, 1),
+                  borderaxespad=0., title="scale factor", title_fontsize=FONTSIZE)
 
 def build_heatmap_grid(grouped):
     """
@@ -96,18 +96,18 @@ def plot_heatmaps(grids, all_ds, all_scales, axes_row, cmap, value_descriptor):
                 luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
                 text_color = "white" if luminance < 0.5 else "black"
                 ax.text(col, row, f"{val:.2g}", ha="center", va="center",
-                        fontsize=6, color=text_color)
-        ax.set_title(impl, fontsize=9)
-        ax.set_xlabel("dimension (m = n = k)")
-        ax.set_ylabel("scale factor")
+                        fontsize=FONTSIZE, color=text_color)
+        ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
+        ax.set_ylabel("scale factor", fontsize=FONTSIZE)
         ax.set_xticks(range(len(all_ds)))
-        ax.set_xticklabels(all_ds, fontsize=7, rotation=45)
+        ax.set_xticklabels(all_ds, fontsize=FONTSIZE, rotation=45, ha='right')
         ax.set_yticks(range(len(all_scales)))
-        ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=7)
-        ax.figure.colorbar(im, ax=ax, shrink=0.5, label=f"max {value_descriptor}")
+        ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=FONTSIZE)
+        cb = ax.figure.colorbar(im, ax=ax, shrink=0.75)
+        cb.ax.set_title(r"$f_A(n)$", fontsize=FONTSIZE, pad=10)
+        cb.ax.tick_params(labelsize=FONTSIZE)
 
-
-def plot_max_vals(paths, figsize_per_plot: tuple = (5, 4)) -> plt.Figure:
+def plot_max_vals(paths, figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
     if isinstance(paths, str):
         paths = [paths]
 
@@ -115,6 +115,9 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (5, 4)) -> plt.Figure:
     impls = sorted(grouped.keys())
     n_impls = len(impls)
 
+    mpl.rcParams['font.family'] = 'serif'
+    global FONTSIZE
+    FONTSIZE = 18
     fig, axes = plt.subplots(
         n_impls, 2,
         figsize=(figsize_per_plot[0] * 2, figsize_per_plot[1] * n_impls),
@@ -124,9 +127,8 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (5, 4)) -> plt.Figure:
     # Shared scale-factor styling for the line plots
     markers = ['o', 's', '^', 'D', 'v', 'P', 'X', '*', '<', '>', 'h', 'p']
     all_scales_for_lines = sorted({s for impl_data in grouped.values() for s in impl_data})
-    line_cmap = mpl.cm.get_cmap('viridis', max(len(all_scales_for_lines), 2))
     scale_style = {
-        s: {"color": line_cmap(i), "marker": markers[i % len(markers)]}
+        s: {"marker": markers[i % len(markers)]}
         for i, s in enumerate(all_scales_for_lines)
     }
 
@@ -140,7 +142,7 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (5, 4)) -> plt.Figure:
     plot_heatmaps(grids, all_ds, all_scales, heat_axes,
                   cmap=heatmap_cmap, value_descriptor=value_descriptor)
 
-    fig.tight_layout()
+    fig.tight_layout(w_pad=6, h_pad=4)
     return fig
 
 
