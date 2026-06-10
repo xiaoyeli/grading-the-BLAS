@@ -79,5 +79,6 @@ run: $(MAIN_EXE)
 	@cp $(DGEMM_CONFIG_MK) results/$(RUN_ID)/
 	@cp $(TEST_CONFIG_MK) results/$(RUN_ID)/
 	RUN_OUTPUT_DIR="results/$(RUN_ID)/raw_data" $(RUN_PREFIX) ./$(BIN_DIR)/$(MAIN_EXE)
+	.venv/bin/python3 scripts/plot_max_values_across_dims_and_scales.py results/$(RUN_ID)
 
 stats: $(STATS_EXE)

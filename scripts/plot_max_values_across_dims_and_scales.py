@@ -161,6 +161,9 @@ def main():
         sys.exit(1)
 
     unique_dir = Path(sys.argv[1])
+    WIDTH = 60
+    prefix = f"━━━ Generating figure from {unique_dir} "
+    print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)) + "\n")
     paths = sorted((unique_dir / "raw_data").glob("**/f_of_n.fp64"))
     if not paths:
         print(f"No f_of_n.fp64 files found under {unique_dir / 'raw_data'}")
@@ -170,7 +173,11 @@ def main():
     output_path = unique_dir / "figure.png"
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
-    print(f"Wrote {output_path}")
+    sep = "━" * 60
+    print(sep)
+    print(f"  Figure written to:")
+    print(f"  {output_path}")
+    print(sep)
 
 
 if __name__ == "__main__":

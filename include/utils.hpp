@@ -242,7 +242,7 @@ void display_distribution_stats( const int m, const int n, const T *errors, cons
     T p75  = percentile(0.75);   // Q3
     T p100 = vals.back();        // max
 
-    std::cout << "\n=== Distribution Stats | " << name << " ===\n\n";
+    std::cout << "\n=== Distribution Stats | " << name << "\n\n";
     std::cout << "  min    : " << p0   << "\n";
     std::cout << "  Q1     : " << p25  << "\n";
     std::cout << "  median : " << p50  << "\n";
