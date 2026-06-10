@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from collections import defaultdict
+from pathlib import Path
 
 from plot_utils import load_matrix, parse_path_metadata
 
@@ -69,13 +70,15 @@ def build_heatmap_grid(grouped):
     return all_ds, all_scales, grids
 
 
-def plot_heatmaps(grids, all_ds, all_scales, axes_row, norm, cmap, value_descriptor):
-    """Draw one heatmap per impl into the given row of axes. Returns the last image."""
+def plot_heatmaps(grids, all_ds, all_scales, axes_row, cmap, value_descriptor):
+    """Draw one heatmap per impl into the given row of axes."""
     impls = sorted(grids.keys())
-    im = None
     for i, impl in enumerate(impls):
         ax = axes_row[i]
         Z = grids[impl]
+        finite = Z[np.isfinite(Z)]
+        vmin, vmax = (finite.min(), finite.max()) if finite.size > 0 else (0.0, 1.0)
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         im = ax.imshow(
             Z,
             cmap=cmap,
@@ -84,7 +87,6 @@ def plot_heatmaps(grids, all_ds, all_scales, axes_row, norm, cmap, value_descrip
             origin='lower',
             interpolation='nearest',
         )
-        # Annotate each cell with its value
         for row in range(Z.shape[0]):
             for col in range(Z.shape[1]):
                 val = Z[row, col]
@@ -93,13 +95,8 @@ def plot_heatmaps(grids, all_ds, all_scales, axes_row, norm, cmap, value_descrip
                 rgba = cmap(norm(val))
                 luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
                 text_color = "white" if luminance < 0.5 else "black"
-                ax.text(
-                    col, row,
-                    f"{val:.2g}",
-                    ha="center", va="center",
-                    fontsize=6,
-                    color=text_color,
-                )
+                ax.text(col, row, f"{val:.2g}", ha="center", va="center",
+                        fontsize=6, color=text_color)
         ax.set_title(impl, fontsize=9)
         ax.set_xlabel("dimension (m = n = k)")
         ax.set_ylabel("scale factor")
@@ -108,7 +105,6 @@ def plot_heatmaps(grids, all_ds, all_scales, axes_row, norm, cmap, value_descrip
         ax.set_yticks(range(len(all_scales)))
         ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=7)
         ax.figure.colorbar(im, ax=ax, shrink=0.5, label=f"max {value_descriptor}")
-    return im
 
 
 def plot_max_vals(paths, figsize_per_plot: tuple = (5, 4)) -> plt.Figure:
@@ -134,40 +130,36 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (5, 4)) -> plt.Figure:
         for i, s in enumerate(all_scales_for_lines)
     }
 
-    # Build heatmap data and shared colorbar normalization (linear scale)
     all_ds, all_scales, grids = build_heatmap_grid(grouped)
-    stacked = np.array(list(grids.values()))
-    finite = stacked[np.isfinite(stacked)]
-    if finite.size == 0:
-        vmin, vmax = 0.0, 1.0
-    else:
-        vmin, vmax = finite.min(), finite.max()
-    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     heatmap_cmap = mpl.cm.get_cmap('cividis')
 
-    # Column 0: line plots. Column 1: heatmaps.
     line_axes = [axes[i][0] for i in range(n_impls)]
     heat_axes = [axes[i][1] for i in range(n_impls)]
 
     plot_lines(grouped, line_axes, scale_style, value_descriptor)
-    im = plot_heatmaps(grids, all_ds, all_scales, heat_axes,
-                       norm=norm, cmap=heatmap_cmap, value_descriptor=value_descriptor)
+    plot_heatmaps(grids, all_ds, all_scales, heat_axes,
+                  cmap=heatmap_cmap, value_descriptor=value_descriptor)
 
-    fig.tight_layout(rect=[0, 0, 0.92, 1])  # leave room for colorbar on the right
-    #fig.colorbar(im, ax=heat_axes, shrink=0.8, label=f"max {value_descriptor}")
+    fig.tight_layout()
     return fig
 
 
 def main():
-    if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <path1> [path2 ...]")
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <unique_dir>")
         sys.exit(1)
 
-    paths = sys.argv[1:]
+    unique_dir = Path(sys.argv[1])
+    paths = sorted((unique_dir / "raw_data").glob("**/f_of_n.fp64"))
+    if not paths:
+        print(f"No f_of_n.fp64 files found under {unique_dir / 'raw_data'}")
+        sys.exit(1)
+
     fig = plot_max_vals(paths)
-    output_path = "results/figure.png"
+    output_path = unique_dir / "figure.png"
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
+    print(f"Wrote {output_path}")
 
 
 if __name__ == "__main__":
