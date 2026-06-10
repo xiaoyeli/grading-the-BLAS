@@ -3,8 +3,7 @@
 #include "utils.hpp"
 #include <vector>
 #include <cmath>
-
-#define OUTPUT_DIR "results/raw_data/"
+#include <cstdlib>
 
 #if defined(VERBOSE)
 #include <stdio.h>
@@ -23,6 +22,8 @@ int main(){
 #if defined(INNER_SCALING)
     dgemm_impl_name += "_w_inner_scaling";
 #endif
+    const char* env_dir = std::getenv("RUN_OUTPUT_DIR");
+    std::string output_dir = env_dir ? std::string(env_dir) + "/" : "results/raw_data/";
     std::string path_string;
 
     char transa = 'N';
@@ -68,9 +69,9 @@ int main(){
 #endif
 #if defined(DUMP_A_B)
             // dump A and B; note that dump_matrix overwrites every time
-            path_string = OUTPUT_DIR + construct_metadata_path("A", INPUT_TYPE, m, n, k, s);
+            path_string = output_dir + construct_metadata_path("A", INPUT_TYPE, m, n, k, s);
             dump_matrix(m, k, &A[0], lda, path_string + "/values.fp64");
-            path_string = OUTPUT_DIR + construct_metadata_path("B", INPUT_TYPE, m, n, k, s);
+            path_string = output_dir + construct_metadata_path("B", INPUT_TYPE, m, n, k, s);
             dump_matrix(k, n, &B[0], ldb, path_string + "/values.fp64");
 #endif
 
@@ -129,7 +130,7 @@ int main(){
 #elif defined(INNER_PERMUTE)
                 full_input_type_string += "_w_inner_permute_" + std::to_string(perm_seed);
 #endif
-                path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, full_input_type_string, m, n, k, s);
+                path_string = output_dir + construct_metadata_path(dgemm_impl_name, full_input_type_string, m, n, k, s);
                 dump_matrix(m, n, &C[0], ldc, path_string + "/values.fp64");
 #endif
             }
@@ -141,18 +142,18 @@ int main(){
 #elif defined(INNER_PERMUTE)
             full_input_type_string += "_w_inner_permute_" + std::to_string(perm_seed);
 #endif
-            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, full_input_type_string, m, n, k, s);
+            path_string = output_dir + construct_metadata_path(dgemm_impl_name, full_input_type_string, m, n, k, s);
             dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.fp64");
             display_distribution_stats(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.fp64");
 
 #else
 
 #if defined(DUMP_C)
-            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s);
+            path_string = output_dir + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s);
             dump_matrix(m, n, &C[0], ldc, path_string + "/values.fp64");
 #endif
             // either load a cached C_ref or compute from scratch and cache for later
-            path_string = OUTPUT_DIR + construct_metadata_path("C_ref", INPUT_TYPE, m, n, k, s);
+            path_string = output_dir + construct_metadata_path("C_ref", INPUT_TYPE, m, n, k, s);
             if ( ! load_matrix(path_string + "/values.fp" + std::to_string(sizeof(C_ref[0])*8), m, n, &C_ref[0], ldc ) ){
                 init_zero_matrix(m, n, &C_ref[0], ldc);
                 reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &C_ref[0], &ldc);
@@ -160,7 +161,7 @@ int main(){
             }
 
             // either load a cached C_ref_abs or compute from scratch and cache for later
-            path_string = OUTPUT_DIR + construct_metadata_path("C_ref_abs", INPUT_TYPE, m, n, k, s);
+            path_string = output_dir + construct_metadata_path("C_ref_abs", INPUT_TYPE, m, n, k, s);
             if ( ! load_matrix(path_string + "/values.fp" + std::to_string(sizeof(C_ref_abs[0])*8), m, n, &C_ref_abs[0], ldc ) ){
                 abs_matrix(m, k, &A[0], lda);
                 abs_matrix(m, k, &B[0], ldb);
@@ -174,7 +175,7 @@ int main(){
             init_zero_matrix(m, n, &f_of_n[0], ldc);
             calculate_relative_errors(m, n, &C[0], ldc, &C_ref[0], ldc, &rel_errors[0], ldc);
             calculate_f_of_n(m, n, &C[0], ldc, &C_ref[0], ldc, &C_ref_abs[0], ldc, &f_of_n[0], ldc);
-            path_string = OUTPUT_DIR + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s);
+            path_string = output_dir + construct_metadata_path(dgemm_impl_name, INPUT_TYPE, m, n, k, s);
             dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.fp64");
             dump_matrix(m, n, &f_of_n[0], ldc, path_string + "/f_of_n.fp64");
             display_distribution_stats(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.fp64");

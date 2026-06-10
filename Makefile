@@ -1,5 +1,7 @@
 SHELL := /bin/bash
 
+RUN_ID := $(shell date +%Y%m%d_%H%M%S)
+
 MAIN_EXE := run_test
 STATS_EXE := compute_distribution_stats
 BIN_DIR := bin
@@ -73,6 +75,9 @@ $(STATS_EXE): $(STATS_SRCS)
 	$(CXX) -I$(INCLUDE_DIR) $^ -o ./$(BIN_DIR)/$@
 
 run: $(MAIN_EXE)
-	$(RUN_PREFIX) ./$(BIN_DIR)/$(MAIN_EXE)
+	@mkdir -p results/$(RUN_ID)
+	@cp $(DGEMM_CONFIG_MK) results/$(RUN_ID)/
+	@cp $(TEST_CONFIG_MK) results/$(RUN_ID)/
+	RUN_OUTPUT_DIR="results/$(RUN_ID)/raw_data" $(RUN_PREFIX) ./$(BIN_DIR)/$(MAIN_EXE)
 
 stats: $(STATS_EXE)
