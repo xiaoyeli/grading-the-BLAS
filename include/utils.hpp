@@ -27,7 +27,8 @@ void calculate_relative_errors( const int m, const int n, const double *C, const
             const long double ci  = static_cast<long double>(C[i + j*ldc1]);
             const long double cri = static_cast<long double>(C_ref[i + j*ldc2]);
             const long double abs_err = std::abs(ci - cri);
-            const long double denom   = std::abs(ci) + std::abs(cri);
+            // const long double denom   = std::abs(ci) + std::abs(cri);
+            const long double denom   = std::abs(cri);
             const double rel_err = static_cast<double>(abs_err == 0.0L ? 0.0L : abs_err / denom);
             if ( rel_err > rel_errors[i + j*ldc3] ){
                 rel_errors[i + j*ldc3] = rel_err;
