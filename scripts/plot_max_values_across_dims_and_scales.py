@@ -41,6 +41,8 @@ def plot_lines(grouped, axes_row, scale_style, value_descriptor):
                 linewidth=1.5,
             )
         ax.tick_params(labelsize=FONTSIZE)
+        ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
+        ax.yaxis.get_offset_text().set_fontsize(FONTSIZE)
         ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
         ax.set_ylabel(r"$f_A(n)$", fontsize=FONTSIZE)
         ax.grid(True, which="both", linestyle=":", linewidth=0.5, alpha=0.6)
@@ -87,16 +89,18 @@ def plot_heatmaps(grids, all_ds, all_scales, axes_row, cmap, value_descriptor):
             origin='lower',
             interpolation='nearest',
         )
-        for row in range(Z.shape[0]):
-            for col in range(Z.shape[1]):
-                val = Z[row, col]
-                if not np.isfinite(val):
-                    continue
-                rgba = cmap(norm(val))
-                luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
-                text_color = "white" if luminance < 0.5 else "black"
-                ax.text(col, row, f"{val:.2g}", ha="center", va="center",
-                        fontsize=FONTSIZE, color=text_color)
+        labels = {(r, c): f"{Z[r, c]:.2g}"
+                  for r in range(Z.shape[0]) for c in range(Z.shape[1])
+                  if np.isfinite(Z[r, c])}
+        max_len = max((len(s) for s in labels.values()), default=5)
+        cell_fontsize = FONTSIZE * min(1.0, 5 / max_len)
+
+        for (row, col), label in labels.items():
+            rgba = cmap(norm(Z[row, col]))
+            luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
+            text_color = "white" if luminance < 0.5 else "black"
+            ax.text(col, row, label, ha="center", va="center",
+                    fontsize=cell_fontsize, color=text_color)
         ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
         ax.set_ylabel("scale factor", fontsize=FONTSIZE)
         ax.set_xticks(range(len(all_ds)))
@@ -104,8 +108,13 @@ def plot_heatmaps(grids, all_ds, all_scales, axes_row, cmap, value_descriptor):
         ax.set_yticks(range(len(all_scales)))
         ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=FONTSIZE)
         cb = ax.figure.colorbar(im, ax=ax, shrink=0.75)
-        cb.ax.set_title(r"$f_A(n)$", fontsize=FONTSIZE, pad=10)
+        cb.set_label(r"$f_A(n)$", fontsize=FONTSIZE)
         cb.ax.tick_params(labelsize=FONTSIZE)
+        cb.ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
+        cb_ot = cb.ax.yaxis.get_offset_text()
+        cb_ot.set_fontsize(FONTSIZE)
+        cb_ot.set_ha('left')
+        cb_ot.set_x(0)
 
 def plot_max_vals(paths, figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
     if isinstance(paths, str):
