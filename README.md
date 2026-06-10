@@ -48,7 +48,7 @@ make run DGEMM_CONFIG_MK=path/to/your_dgemm_config.mk \
 This will:
 1. Compile the test harness
 2. Create a timestamped experiment directory `results/YYYYMMDD_HHMMSS/`
-3. Copy both config files into that directory to document the parameters used
+3. Copy both config files into that directory to document the parameters used to generate the data
 4. Run the sweep and write raw binary results under `results/YYYYMMDD_HHMMSS/raw_data/`
 5. Automatically generate `results/YYYYMMDD_HHMMSS/figure.png`
 
@@ -82,7 +82,7 @@ results/
 **New behavior:**
 
 - `make run` now runs the plot script automatically on completion.
-- Config files are saved alongside results for reproducibility.
+- Config files are saved alongside results to document the parameters used to generate the data.
 
 **Breaking changes for existing users:**
 
