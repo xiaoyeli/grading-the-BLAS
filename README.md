@@ -71,7 +71,7 @@ results/
                         └── rel_errors.fp64
 ```
 
-`f_of_n.fp64` contains the normalized error metric `f(n) = |C - C_ref| / (|A|·|B| · u)` where `u = 2^-53`. Values near `n` indicate near-optimal accuracy. `rel_errors.fp64` contains componentwise relative errors. Both are column-major binary `double` arrays.
+`f_of_n.fp64` contains the normalized error metric `f(n) = |C - C_ref| / (|A|·|B| · u)` where `u = 2^-53`. `rel_errors.fp64` contains componentwise relative errors. Both are column-major binary `double` arrays.
 
 ---
 
