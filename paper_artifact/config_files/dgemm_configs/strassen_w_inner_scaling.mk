@@ -1,5 +1,5 @@
 # === target DGEMM implementation ===
-DGEMM_IMPL_NAME := STRASSEN_BASECASE_2_GNU_13.2_O0_x86_64_zen3
+DGEMM_IMPL_NAME := STRASSEN_INNER_SCALING # STRASSEN_BASECASE_2_GNU_13.2_O0_x86_64_zen3_ADDB_SCALING
 LIB_PATH := $(STRASSEN_SO_PATH)
 LDFLAGS := -L$(dir $(LIB_PATH)) -lstrassen_dgemm
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"

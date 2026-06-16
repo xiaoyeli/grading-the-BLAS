@@ -1,5 +1,5 @@
 # === target DGEMM implementation ===
-DGEMM_IMPL_NAME := BLIS_2.0_GNU_13.2_DEFAULT_x86_64_zen3
+DGEMM_IMPL_NAME := BLIS # BLIS_2.0_GNU_13.2_DEFAULT_x86_64_zen3
 LIB_PATH := $(BLIS_SO_PATH)
 LDFLAGS := -L$(dir $(LIB_PATH)) -lblis
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"

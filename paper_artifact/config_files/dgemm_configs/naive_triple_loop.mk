@@ -1,5 +1,5 @@
 # === target DGEMM implementation ===
-DGEMM_IMPL_NAME := NAIVE_TRIPLE_LOOP_GNU_13.2_O0_x86_64_zen3
+DGEMM_IMPL_NAME := NAIVE_TRIPLE_LOOP # NAIVE_TRIPLE_LOOP_GNU_13.2_O0_x86_64_zen3
 LIB_PATH := $(NAIVE_TRIPLE_LOOP_SO_PATH)
 LDFLAGS := -L$(dir $(LIB_PATH)) -lnaive_triple_loop_dgemm
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"

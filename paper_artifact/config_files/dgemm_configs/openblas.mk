@@ -1,5 +1,5 @@
 # === target DGEMM implementation ===
-DGEMM_IMPL_NAME := OPENBLAS_0.3.30_GNU_13.2_DEFAULT_x86_64_zen3
+DGEMM_IMPL_NAME := OPENBLAS # OPENBLAS_0.3.30_GNU_13.2_DEFAULT_x86_64_zen3
 LIB_PATH := $(OPENBLAS_SO_PATH)
 LDFLAGS := -L$(dir $(LIB_PATH)) -lopenblas
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"

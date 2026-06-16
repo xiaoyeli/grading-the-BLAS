@@ -1,5 +1,5 @@
 # === target DGEMM implementation ===
-DGEMM_IMPL_NAME := STRASSEN_BASECASE_2_ZEROING_GNU_13.2_O0_x86_64_zen3
+DGEMM_IMPL_NAME := STRASSEN_OUTER_SCALING_AND_ZEROING # STRASSEN_BASECASE_2_ZEROING_GNU_13.2_O0_x86_64_zen3
 LIB_PATH := $(STRASSEN_ZEROING_SO_PATH)
 LDFLAGS := -L$(dir $(LIB_PATH)) -lstrassen_zeroing_dgemm
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"
