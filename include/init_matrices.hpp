@@ -595,6 +595,20 @@ void init_matrices( std::string type, const int log2_max_scl_factor, const int s
         }
     }
 
+#if defined(VERBOSE)
+    printf("A matrix:\n");
+    print_matrix_to_stdout_sci(m, k, &A[0], lda);
+    printf("B matrix:\n");
+    print_matrix_to_stdout_sci(k, n, &B[0], ldb);
+#endif
+#if defined(DUMP_A_B)
+    // dump A and B; note that dump_matrix overwrites every time
+    path_string = output_dir + construct_metadata_path("A", type, m, n, k, log2_max_scl_factor);
+    dump_matrix(m, k, &A[0], lda, path_string + "/values.fp64");
+    path_string = output_dir + construct_metadata_path("B", type, m, n, k, log2_max_scl_factor);
+    dump_matrix(k, n, &B[0], ldb, path_string + "/values.fp64");
+#endif
+
     return;
 }
 

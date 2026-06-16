@@ -24,12 +24,10 @@ void calculate_relative_errors( const int m, const int n, const double *C, const
     const long double flush_threshold = static_cast<long double>(DBL_TRUE_MIN);
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
-            const long double ci  = static_cast<long double>(C[i + j*ldc1]);
-            const long double cri = static_cast<long double>(C_ref[i + j*ldc2]);
-            const long double abs_err = std::abs(ci - cri);
-            // const long double denom   = std::abs(ci) + std::abs(cri);
-            const long double denom   = std::abs(cri);
-            const double rel_err = static_cast<double>(abs_err == 0.0L ? 0.0L : abs_err / denom);
+            const long double ci_ld  = static_cast<long double>(C[i + j*ldc1]);
+            const long double cri_ld = static_cast<long double>(C_ref[i + j*ldc2]);
+            const long double abs_err_ld = std::abs(ci_ld - cri_ld);
+            const double rel_err = static_cast<double>(abs_err_ld == 0.0L ? 0.0L : abs_err_ld / std::abs(cri_ld));
             if ( rel_err > rel_errors[i + j*ldc3] ){
                 rel_errors[i + j*ldc3] = rel_err;
             }
@@ -38,17 +36,17 @@ void calculate_relative_errors( const int m, const int n, const double *C, const
 }
 
 template <typename T>
-void calculate_f_of_n( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, const T *C_ref_abs, const int ldc3, double *f_of_n, const int ldc4 ){
+void calculate_f_of_n( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, const T *scl, const int ldc3, double *f_of_n, const int ldc4 ){
     
     const long double unit_roundoff = std::ldexp(1.0L, -53);
     
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
-            const long double ci    = static_cast<long double>(C[i + j*ldc1]);
-            const long double cri   = static_cast<long double>(C_ref[i + j*ldc2]);
-            const long double cri_a = static_cast<long double>(C_ref_abs[i + j*ldc3]);
-            const long double abs_err = std::abs(ci - cri);
-            f_of_n[i + j*ldc4] = static_cast<double>(abs_err == 0.0L ? 0.0L : abs_err / (cri_a * unit_roundoff));
+            const long double ci_ld = static_cast<long double>(C[i + j*ldc1]);
+            const long double cri_ld = static_cast<long double>(C_ref[i + j*ldc2]);
+            const long double scl_ld = static_cast<long double>(scl[i + j*ldc3]);
+            const long double abs_err_ld = std::abs(ci_ld - cri_ld);
+            f_of_n[i + j*ldc4] = static_cast<double>(abs_err_ld == 0.0L ? 0.0L : abs_err_ld / (scl_ld * unit_roundoff));
         }
     }
 }
@@ -105,6 +103,38 @@ void abs_matrix( const int m, const int n, T *A, const int lda ){
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
             A[i + j*lda] = std::abs(A[i + j*lda]);
+        }
+    }
+
+    return;
+}
+
+template <typename T>
+void impute_rowmax( const int m, const int n, T *A, const int lda ){
+    
+    for ( int i = 0; i < m; ++i ){
+        T rowmax = std::abs(A[i]);
+        for ( int j = 1; j < n; ++j ){
+            rowmax = std::abs(A[i + j*lda]) > rowmax ? std::abs(A[i + j*lda]) : rowmax;
+        }
+        for ( int j = 0; j < n; ++j ){
+            A[i + j*lda] = rowmax;
+        }
+    }
+
+    return;
+}
+
+template <typename T>
+void impute_colmax( const int m, const int n, T *A, const int lda ){
+    
+    for ( int j = 0; i < n; ++j ){
+        T colmax = std::abs(A[j*lda]);
+        for ( int i = 1; i < m; ++i ){
+            colmax = std::abs(A[i + j*lda]) > colmax ? std::abs(A[i + j*lda]) : colmax;
+        }
+        for ( int i = 0; i < m; ++i ){
+            A[i + j*lda] = colmax;
         }
     }
 

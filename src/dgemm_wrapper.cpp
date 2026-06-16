@@ -148,5 +148,10 @@ void dgemm_wrapper( const char transa, const char transb,
     copy_matrix( k, n, &B[0], ldb, &B_prescaled[0], ldb );
 #endif
 
+#if defined(VERBOSE)
+    printf("C matrix:\n");
+    print_matrix_to_stdout_sci(m, n, &C[0], ldc);
+#endif
+
     return;
 }
