@@ -1,10 +1,11 @@
 #!/bin/bash
 
-REPO_ROOT=$(git rev-parse --show-toplevel)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 cd ${REPO_ROOT}
 
 TEST_CONFIGS=(
-    ./paper_artifact/config_files/test_configs/3.mk
+    ./paper_artifact/config_files/test_configs/demo_3.mk
 )
 
 DGEMM_CONFIGS=(

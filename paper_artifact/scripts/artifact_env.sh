@@ -6,12 +6,10 @@ export OMP_PLACES=cores
 export OMP_NUM_THREADS=64
 set +v
 
-module load gcc-native/13.2
-module load cudatoolkit/12.9
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 
-REPO_ROOT=$(git rev-parse --show-toplevel)
-
-cd ${REPO_ROOT}/src
+cd ${REPO_ROOT}/paper_artifact/src
 
 make -f Makefile.libs
 
@@ -44,13 +42,13 @@ fi
 
 cd ${REPO_ROOT}
 
-NETLIBBLAS_SO_PATH=$(find ${REPO_ROOT}/submodules -name "librefblas.so" | head -n 1 | xargs realpath)
-if [ -e "${NETLIBBLAS_SO_PATH}" ]
+NETLIBBLAS_LIB_PATH=$(find ${REPO_ROOT}/submodules -name "librefblas.a" | head -n 1 | xargs realpath)
+if [ -e "${NETLIBBLAS_LIB_PATH}" ]
 then
-    echo "Found librefblas.so at ${NETLIBBLAS_SO_PATH}"
-    export NETLIBBLAS_SO_PATH
+    echo "Found librefblas.a at ${NETLIBBLAS_LIB_PATH}"
+    export NETLIBBLAS_LIB_PATH
 else
-    echo "Warning: Could not find librefblas.so"
+    echo "Warning: Could not find librefblas.a"
 fi
 
 BLIS_SO_PATH=$(find ${REPO_ROOT}/submodules -name "libblis.so" | head -n 1 | xargs realpath)
