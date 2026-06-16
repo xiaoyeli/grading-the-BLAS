@@ -128,7 +128,7 @@ void impute_rowmax( const int m, const int n, T *A, const int lda ){
 template <typename T>
 void impute_colmax( const int m, const int n, T *A, const int lda ){
     
-    for ( int j = 0; i < n; ++j ){
+    for ( int j = 0; j < n; ++j ){
         T colmax = std::abs(A[j*lda]);
         for ( int i = 1; i < m; ++i ){
             colmax = std::abs(A[i + j*lda]) > colmax ? std::abs(A[i + j*lda]) : colmax;
