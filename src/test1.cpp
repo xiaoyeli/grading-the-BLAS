@@ -4,18 +4,13 @@
 #include <vector>
 #include <cstdlib>
 
+#define RAW_DATA_DIR "results/raw_data/"
+
 int main(){
 
-    const char* env_dir = std::getenv("RUN_OUTPUT_DIR");
-    if ( !env_dir ){
-        fprintf(stderr,
-            "ERROR: RUN_OUTPUT_DIR is not set.\n"
-            "       Run this binary via 'make run', which sets the output\n"
-            "       directory automatically and co-locates the config files.\n");
-        return 1;
-    }
-    std::string output_dir = std::string(env_dir) + "/";
+    std::string raw_data_dir = RAW_DATA_DIR;
     std::string path_string;
+
 
     char transa = 'N';
     char transb = 'N';
@@ -38,14 +33,14 @@ int main(){
         for ( int s = LOG2_MIN_SCALING_FACTOR; s <= LOG2_MAX_SCALING_FACTOR; s += LOG2_INC_SCALING_FACTOR ){
         
             // initialize A and B
-            init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb, output_dir);
+            init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb, raw_data_dir);
             
             // call the DGEMM implementation under test to compute C
             init_zero_matrix(m, n, &C[0], ldc);
             dgemm_wrapper(transa, transb, m, n, k, alpha, &A[0], lda, &B[0], ldb, beta, &C[0], ldc);
 
             // write C to disk
-            path_string = output_dir + construct_metadata_path(DGEMM_IMPL_NAME, INPUT_TYPE, m, n, k, s);
+            path_string = raw_data_dir + construct_metadata_path(DGEMM_IMPL_NAME, INPUT_TYPE, m, n, k, s);
             dump_matrix(m, n, &C[0], ldc, path_string + "/values.fp64");
         }
     }

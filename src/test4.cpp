@@ -5,17 +5,11 @@
 #include <cstdlib>
 #include "reference_gemm.hpp"
 
+#define RAW_DATA_DIR "results/raw_data/"
+
 int main(){
 
-    const char* env_dir = std::getenv("RUN_OUTPUT_DIR");
-    if ( !env_dir ){
-        fprintf(stderr,
-            "ERROR: RUN_OUTPUT_DIR is not set.\n"
-            "       Run this binary via 'make run', which sets the output\n"
-            "       directory automatically and co-locates the config files.\n");
-        return 1;
-    }
-    std::string output_dir = std::string(env_dir) + "/";
+    std::string raw_data_dir = RAW_DATA_DIR;
     std::string path_string;
 
     char transa = 'N';
@@ -41,7 +35,7 @@ int main(){
         for ( int s = LOG2_MIN_SCALING_FACTOR; s <= LOG2_MAX_SCALING_FACTOR; s += LOG2_INC_SCALING_FACTOR ){
         
             // initialize A and B
-            init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb, output_dir);
+            init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb, raw_data_dir);
 
             // calculate ground truth before permuting A and B using the DGEMM implementation under test
             init_zero_matrix(m, n, &C_ref[0], ldc);
@@ -56,7 +50,7 @@ int main(){
             int perm_seed = 0;
             for ( int i = 0; i < OUTER_PERMUTE; ++i ){
                 
-                init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb);
+                init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb, raw_data_dir);
                 
                 perm_seed++;
                 permute_rows(perm_seed, m, k, &A[0], lda);
@@ -70,7 +64,7 @@ int main(){
             int perm_seed = 0;
             for ( int i = 0; i < INNER_PERMUTE; ++i ){
                 
-                init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb);
+                init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb, raw_data_dir);
                 
                 perm_seed++;
                 permute_cols(perm_seed, m, k, &A[0], lda);
@@ -90,7 +84,7 @@ int main(){
             }
 
             // write to disk the maximum componentwise relative error (with respect to A*B using the implementation under test) over all permutations tested
-            path_string = output_dir + construct_metadata_path(DGEMM_IMPL_NAME, full_input_type_string, m, n, k, s);
+            path_string = raw_data_dir + construct_metadata_path(DGEMM_IMPL_NAME, full_input_type_string, m, n, k, s);
             dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.fp64");
         }
     }

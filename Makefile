@@ -1,84 +1,99 @@
 SHELL := /bin/bash
 
-RUN_ID := $(shell date +%Y%m%d_%H%M%S)
-
-MAIN_EXE := run_test
-STATS_EXE := compute_distribution_stats
-BIN_DIR := bin
-SRC_DIR := src
+BIN_DIR     := bin
+SRC_DIR     := src
 INCLUDE_DIR := include
 
 include $(DGEMM_CONFIG_MK)
+include config_files/test_configs/common.mk
 
-include $(TEST_CONFIG_MK)
-
-# strip whitespace from config vars
 CONFIG_VARS := DGEMM_IMPL_NAME SO_PATH LDFLAGS RUN_PREFIX CXX USE_CUDA CXXFLAGS \
-				OUTER_SCALING INNER_SCALING INPUT_TYPE LOG2_MIN_DIM LOG2_MAX_DIM \
-				LOG2_MIN_SCALING_FACTOR LOG2_MAX_SCALING_FACTOR LOG2_INC_SCALING_FACTOR \
-				REFERENCE_GEMM DUMP_A_B DUMP_C VERBOSE OUTER_PERMUTE INNER_PERMUTE
+               OUTER_SCALING INNER_SCALING LOG2_MIN_DIM LOG2_MAX_DIM \
+               LOG2_MIN_SCALING_FACTOR LOG2_MAX_SCALING_FACTOR LOG2_INC_SCALING_FACTOR \
+               REFERENCE_GEMM DUMP_A_B VERBOSE
 $(foreach v,$(CONFIG_VARS),$(eval $(v) := $$(strip $$($(v)))))
 
-# values specified in config.sh
-CPPFLAGS += -DDGEMM_IMPL_NAME=\"$(DGEMM_IMPL_NAME)\"
-CPPFLAGS += -DLOG2_MIN_DIM=$(LOG2_MIN_DIM)
-CPPFLAGS += -DLOG2_MAX_DIM=$(LOG2_MAX_DIM)
-CPPFLAGS += -DLOG2_MIN_SCALING_FACTOR=$(LOG2_MIN_SCALING_FACTOR)
-CPPFLAGS += -DLOG2_MAX_SCALING_FACTOR=$(LOG2_MAX_SCALING_FACTOR)
-CPPFLAGS += -DLOG2_INC_SCALING_FACTOR=$(LOG2_INC_SCALING_FACTOR)
-CPPFLAGS += -DINPUT_TYPE=\"$(INPUT_TYPE)\"
-CPPFLAGS += -DREFERENCE_GEMM=$(REFERENCE_GEMM)
+# test4 permute: default INNER_PERMUTE=10; override on the command line with
+# INNER_PERMUTE=k or OUTER_PERMUTE=k (OUTER_PERMUTE takes precedence when non-zero)
+OUTER_PERMUTE ?= 0
+INNER_PERMUTE ?= 3
 
+# --- common CPPFLAGS (all test binaries) ---
+COMMON_CPPFLAGS :=
+COMMON_CPPFLAGS += -DDGEMM_IMPL_NAME=\"$(DGEMM_IMPL_NAME)\"
+COMMON_CPPFLAGS += -DLOG2_MIN_DIM=$(LOG2_MIN_DIM)
+COMMON_CPPFLAGS += -DLOG2_MAX_DIM=$(LOG2_MAX_DIM)
+COMMON_CPPFLAGS += -DLOG2_MIN_SCALING_FACTOR=$(LOG2_MIN_SCALING_FACTOR)
+COMMON_CPPFLAGS += -DLOG2_MAX_SCALING_FACTOR=$(LOG2_MAX_SCALING_FACTOR)
+COMMON_CPPFLAGS += -DLOG2_INC_SCALING_FACTOR=$(LOG2_INC_SCALING_FACTOR)
+COMMON_CPPFLAGS += -DREFERENCE_GEMM=$(REFERENCE_GEMM)
 ifeq ($(USE_CUDA),1)
-	CPPFLAGS += -DUSE_CUDA
+COMMON_CPPFLAGS += -DUSE_CUDA
 endif
-
 ifeq ($(VERBOSE),1)
-	CPPFLAGS += -DVERBOSE
+COMMON_CPPFLAGS += -DVERBOSE
 endif
-
-ifneq ($(OUTER_PERMUTE),0)
-	CPPFLAGS += -DOUTER_PERMUTE=$(OUTER_PERMUTE)
-endif
-
-ifneq ($(INNER_PERMUTE),0)
-	CPPFLAGS += -DINNER_PERMUTE=$(INNER_PERMUTE)
-endif
-
 ifeq ($(OUTER_SCALING),1)
-	CPPFLAGS += -DOUTER_SCALING
+COMMON_CPPFLAGS += -DOUTER_SCALING
 endif
-
 ifeq ($(INNER_SCALING),1)
-	CPPFLAGS += -DINNER_SCALING
+COMMON_CPPFLAGS += -DINNER_SCALING
 endif
-
 ifeq ($(DUMP_A_B),1)
-	CPPFLAGS += -DDUMP_A_B
+COMMON_CPPFLAGS += -DDUMP_A_B
 endif
 
-ifeq ($(DUMP_C),1)
-	CPPFLAGS += -DDUMP_C
+# --- test4 CPPFLAGS: INPUT_TYPE=test2c + one permute mode ---
+TEST4_CPPFLAGS := $(COMMON_CPPFLAGS) -DINPUT_TYPE=\"test2c\"
+ifneq ($(OUTER_PERMUTE),0)
+TEST4_CPPFLAGS += -DOUTER_PERMUTE=$(OUTER_PERMUTE)
+else
+TEST4_CPPFLAGS += -DINNER_PERMUTE=$(INNER_PERMUTE)
 endif
 
-MAIN_SRCS := $(SRC_DIR)/main.cpp $(SRC_DIR)/dgemm_wrapper.cpp
-STATS_SRCS := $(SRC_DIR)/compute_distribution_stats.cpp
+DGEMM_WRAPPER := $(SRC_DIR)/dgemm_wrapper.cpp
 
-.PHONY: run
+.PHONY: run run_test1 run_test2 run_test3 run_test4 $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4 compute_distribution_stats stats
 
-$(MAIN_EXE): $(MAIN_SRCS)
+# --- test binaries ---
+$(BIN_DIR)/test1: $(SRC_DIR)/test1.cpp $(DGEMM_WRAPPER)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) -std=c++17 $(CXXFLAGS) $(CPPFLAGS) -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o ./$(BIN_DIR)/$@
+	$(CXX) -std=c++17 $(CXXFLAGS) $(COMMON_CPPFLAGS) -DINPUT_TYPE=\"test1c\" -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o $@
 
-$(STATS_EXE): $(STATS_SRCS)
+$(BIN_DIR)/test2: $(SRC_DIR)/test2.cpp $(DGEMM_WRAPPER)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) -I$(INCLUDE_DIR) $^ -o ./$(BIN_DIR)/$@
+	$(CXX) -std=c++17 $(CXXFLAGS) $(COMMON_CPPFLAGS) -DINPUT_TYPE=\"test2c\" -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o $@
 
-run: $(MAIN_EXE)
-	@mkdir -p results/$(RUN_ID)
-	@cp $(DGEMM_CONFIG_MK) results/$(RUN_ID)/
-	@cp $(TEST_CONFIG_MK) results/$(RUN_ID)/
-	RUN_OUTPUT_DIR="results/$(RUN_ID)/raw_data" $(RUN_PREFIX) ./$(BIN_DIR)/$(MAIN_EXE)
-	.venv/bin/python3 scripts/plot_sweep_results.py results/$(RUN_ID)
+$(BIN_DIR)/test3: $(SRC_DIR)/test3.cpp $(DGEMM_WRAPPER)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) -std=c++17 $(CXXFLAGS) $(COMMON_CPPFLAGS) -DINPUT_TYPE=\"test3\" -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o $@
 
-stats: $(STATS_EXE)
+$(BIN_DIR)/test4: $(SRC_DIR)/test4.cpp $(DGEMM_WRAPPER)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) -std=c++17 $(CXXFLAGS) $(TEST4_CPPFLAGS) -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o $@
+
+# --- run targets ---
+run_test1: $(BIN_DIR)/test1
+	@mkdir -p results/raw_data
+	$(RUN_PREFIX) ./$(BIN_DIR)/test1
+
+run_test2: $(BIN_DIR)/test2
+	@mkdir -p results/raw_data
+	$(RUN_PREFIX) ./$(BIN_DIR)/test2
+
+run_test3: $(BIN_DIR)/test3
+	@mkdir -p results/raw_data
+	$(RUN_PREFIX) ./$(BIN_DIR)/test3
+
+run_test4: $(BIN_DIR)/test4
+	@mkdir -p results/raw_data
+	$(RUN_PREFIX) ./$(BIN_DIR)/test4
+
+run: run_test1 run_test2 run_test3 run_test4
+
+# --- standalone stats utility ---
+$(BIN_DIR)/compute_distribution_stats: $(SRC_DIR)/compute_distribution_stats.cpp
+	@mkdir -p $(BIN_DIR)
+	$(CXX) -I$(INCLUDE_DIR) $^ -o $@
+
+compute_distribution_stats stats: $(BIN_DIR)/compute_distribution_stats

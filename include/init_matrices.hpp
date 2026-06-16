@@ -98,7 +98,7 @@ void init_guassian_random_matrices(  const T mean, const T std, int seed, const 
 
 template <typename T>
 void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb,
-                            double *C_mask = nullptr, const int ldcm = 0, const std::string& mask_path = "" ){
+                            double *C_mask, const int ldcm ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -135,15 +135,12 @@ void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, c
         }
     }
 
-    if ( C_mask && !mask_path.empty() )
-        dump_matrix(dim, dim, C_mask, ldcm, mask_path);
-
     return;
 }
 
 template <typename T>
 void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb,
-                            double *C_mask = nullptr, const int ldcm = 0, const std::string& mask_path = "" ){
+                            double *C_mask, const int ldcm ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -185,15 +182,11 @@ void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, c
     std::shuffle(target_rows_idx_A.begin(), target_rows_idx_A.end(), gen);
     std::shuffle(target_cols_idx_B.begin(), target_cols_idx_B.end(), gen);
 
-    if ( C_mask )
-        for ( int i = 0; i < dim; ++i )
-            for ( int j = 0; j < dim; ++j )
-                C_mask[i + j*ldcm] = 0.0;
-
     for ( int s = 0; s < target_rows_idx_A.size(); ++s ){
+
         // every t contributes either A[row,t]=0 or B[t,col]=0 → C[row,col] = 0 exactly
-        if ( C_mask )
-            C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] = 1.0;
+        C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] = 1.0;
+
         std::shuffle(sparsity_mask_A.begin(), sparsity_mask_A.end(), gen);
         for ( int t = 0; t < dim; ++t ){
             if ( sparsity_mask_A[t] ){
@@ -205,15 +198,12 @@ void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, c
         }
     }
 
-    if ( C_mask && !mask_path.empty() )
-        dump_matrix(dim, dim, C_mask, ldcm, mask_path);
-
     return;
 }
 
 template <typename T>
 void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, const int ldb, int log2_max_scl_factor,
-                            double *C_mask = nullptr, const int ldcm = 0, const std::string& mask_path = "" ){
+                            double *C_mask, const int ldcm ){
 
     init_guassian_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, dim, dim, dim, A, lda, B, ldb );
 
@@ -264,17 +254,12 @@ void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, c
     std::shuffle(target_rows_idx_A.begin(), target_rows_idx_A.end(), gen);
     std::shuffle(target_cols_idx_B.begin(), target_cols_idx_B.end(), gen);
 
-    if ( C_mask )
-        for ( int i = 0; i < dim; ++i )
-            for ( int j = 0; j < dim; ++j )
-                C_mask[i + j*ldcm] = 0.0;
-
     for ( int s = 0; s < target_rows_idx_A.size(); ++s ){
+
         // 2 = one tiny product survives (magnitude ~ 2^{-2*log2_max_scl_factor})
         // 1 = every A[row,t]*B[t,col] term is zero → C[row,col] = 0 exactly
-        if ( C_mask )
-            C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] =
-                target_rows_cols_with_nonzero_mask[s] ? 2.0 : 1.0;
+        C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] = target_rows_cols_with_nonzero_mask[s] ? 2.0 : 1.0;
+        
         std::shuffle(sparsity_mask_A.begin(), sparsity_mask_A.end(), gen);
         std::shuffle(nonzero_mask.begin(), nonzero_mask.end(), gen);
         for ( int t = 0; t < dim; ++t ){
@@ -292,9 +277,6 @@ void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, c
             }
         }
     }
-
-    if ( C_mask && !mask_path.empty() )
-        dump_matrix(dim, dim, C_mask, ldcm, mask_path);
 
     return;
 }
@@ -515,21 +497,20 @@ void init_rubric_baseline( int seed, const int dim, double *A, const int lda, do
 }
 
 template <typename T>
-void init_matrices( std::string type, const int log2_max_scl_factor, const int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb, std::string output_dir, 
-                    double *C_mask = nullptr, const int ldcm = 0, const std::string& mask_path = "" ){
+void init_matrices( std::string type, const int log2_max_scl_factor, const int seed, const int m, const int n, const int k, T *A, const int lda, T *B, const int ldb, std::string raw_data_dir ) {
     if ( type == "none" ){
         assert(false && "No input type specified." );
     }
     if ( type == "sanity" ){
         init_sanity_matrices(  m, n, k, A, lda, B, ldb );
     }
-    else if ( type == "U(0,1)" ){
+    else if ( type == "U_0_1)" ){
         init_uniform_random_matrices( static_cast<T>(0.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
     }
-    else if ( type == "U(-1,1)" ){
+    else if ( type == "U_-1_1" ){
         init_uniform_random_matrices( static_cast<T>(-1.0), static_cast<T>(1.0), seed, m, n, k, A, lda, B, ldb );
     }
-    else if ( type == "U(1,2)" ){
+    else if ( type == "U_1_2" ){
         init_uniform_random_matrices( static_cast<T>(1.0), static_cast<T>(2.0), seed, m, n, k, A, lda, B, ldb );
     }
     else{
@@ -537,13 +518,25 @@ void init_matrices( std::string type, const int log2_max_scl_factor, const int s
         assert( seed == 0 && "test matrices must be deterministically generated" );
 
         if ( type == "test1a" ){
-            init_test1a_matrices( seed, m, A, lda, B, ldb, C_mask, ldcm, mask_path );
+            std::vector<double> C_mask(m*n);
+            init_zero_matrix(m, n, &C_mask[0], m);
+            init_test1a_matrices( seed, m, A, lda, B, ldb, &C_mask[0], m);
+            std::string mask_path = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
+            dump_matrix(m, n, &C_mask[0], m, mask_path + "/values.fp64");
         }
         else if ( type == "test1b" ){
-            init_test1b_matrices( seed, m, A, lda, B, ldb, C_mask, ldcm, mask_path );
+            std::vector<double> C_mask(m*n);
+            init_zero_matrix(m, n, &C_mask[0], m);
+            init_test1b_matrices( seed, m, A, lda, B, ldb, &C_mask[0], m);
+            std::string mask_path = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
+            dump_matrix(m, n, &C_mask[0], m, mask_path + "/values.fp64");
         }
         else if ( type == "test1c" ){
-            init_test1c_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor, C_mask, ldcm, mask_path );
+            std::vector<double> C_mask(m*n);
+            init_zero_matrix(m, n, &C_mask[0], m);
+            init_test1c_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor, &C_mask[0], m);
+            std::string mask_path = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
+            dump_matrix(m, n, &C_mask[0], m, mask_path + "/values.fp64");
         }
         else if ( type == "test2a" ){
             init_test2a_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor);
@@ -603,9 +596,9 @@ void init_matrices( std::string type, const int log2_max_scl_factor, const int s
 #endif
 #if defined(DUMP_A_B)
     // dump A and B; note that dump_matrix overwrites every time
-    path_string = output_dir + construct_metadata_path("A", type, m, n, k, log2_max_scl_factor);
+    path_string = raw_data_dir + construct_metadata_path("A", type, m, n, k, log2_max_scl_factor);
     dump_matrix(m, k, &A[0], lda, path_string + "/values.fp64");
-    path_string = output_dir + construct_metadata_path("B", type, m, n, k, log2_max_scl_factor);
+    path_string = raw_data_dir + construct_metadata_path("B", type, m, n, k, log2_max_scl_factor);
     dump_matrix(k, n, &B[0], ldb, path_string + "/values.fp64");
 #endif
 
