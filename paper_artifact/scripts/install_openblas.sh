@@ -1,6 +1,7 @@
 #! /bin/bash
 
-REPO_ROOT=$(git rev-parse --show-toplevel)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 VERSION_NUMBER=0.3.30
 
 mkdir -p ${REPO_ROOT}/submodules
@@ -19,4 +20,4 @@ rm v${VERSION_NUMBER}.tar.gz
 
 cd ${REPO_ROOT}/submodules/OpenBLAS-${VERSION_NUMBER}
 make clean    
-make -j 8 TARGET=SANDYBRIDGE FC=gfortran CC=gcc NO_LAPACK=1
+make -j 8 CC=gcc NO_LAPACK=1

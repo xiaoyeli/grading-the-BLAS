@@ -1,13 +1,13 @@
 # === target DGEMM implementation ===
 DGEMM_IMPL_NAME := NETLIBBLAS_3.12.1 # NETLIBBLAS_3.12.1_GNU_13.2_DEFAULT_x86_64_zen3
-LIB_PATH := $(NETLIBBLAS_SO_PATH)
-LDFLAGS := -L$(dir $(LIB_PATH)) -lrefblas
+LIB_PATH := $(NETLIBBLAS_LIB_PATH)
+LDFLAGS := -L$(dir $(LIB_PATH)) -lrefblas -lgfortran
 RUN_PREFIX :=                # optional; string prepended to execution command, i.e., "${RUN_PREFIX} ./run_test"
 
 # === compilation tweaks ====
 CXX := g++
 USE_CUDA := 0	# if USE_CUDA=1, set CXX=nvcc
-CXXFLAGS := -Wl,-rpath,$(dir $(LIB_PATH))
+CXXFLAGS :=
 
 # === advanced options ===
 OUTER_SCALING := 0  # when OUTER_SCALING=1, calculate D1_inv * ( (D1 * A) * (B * D2) ) * D2_inv

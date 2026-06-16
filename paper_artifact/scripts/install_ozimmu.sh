@@ -1,6 +1,7 @@
 #! /bin/bash
 
-REPO_ROOT=$(git rev-parse --show-toplevel)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 VERSION_HASH=08eea92
 
 mkdir -p ${REPO_ROOT}/submodules
@@ -19,14 +20,6 @@ cd ozIMMU-${VERSION_HASH}
 
 # checkout specific commit
 git checkout ${VERSION_HASH}
-
-PATH_CUBLAS_LIB=$(find ${CUDA_HOME}/../../math_libs -name "libcublas.so" | head -n 1 | xargs realpath)
-if [ -e "${PATH_CUBLAS_LIB}" ]
-then
-    export LIBRARY_PATH=${LIBRARY_PATH}:$(dirname ${PATH_CUBLAS_LIB})
-else
-    echo "Warning: Could not find libcublas.so; build may fail"
-fi
 
 # build
 mkdir build
