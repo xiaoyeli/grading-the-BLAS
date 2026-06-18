@@ -23,31 +23,29 @@ def collect_max_vals(paths):
     value_descriptor = descriptors.pop() if descriptors else "value"
     return grouped, value_descriptor
 
-def plot_lines(grouped, axes_row, scale_style, value_descriptor):
-    """Draw one line plot per impl into the given row of axes."""
-    impls = sorted(grouped.keys())
-    for i, impl in enumerate(impls):
-        ax = axes_row[i]
-        for s in sorted(grouped[impl]):
-            points = sorted(grouped[impl][s])
-            ds = [pt[0] for pt in points]
-            ys = [pt[1] for pt in points]
-            style = scale_style[s]
-            ax.plot(
-                ds, ys,
-                label=rf"$\pm 2^{{{s}}}$",
-                marker=style["marker"],
-                markersize=16,
-                linewidth=1.5,
-            )
-        ax.tick_params(labelsize=FONTSIZE)
-        ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
-        ax.yaxis.get_offset_text().set_fontsize(FONTSIZE)
-        ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
-        ax.set_ylabel(r"$f_A(n)$", fontsize=FONTSIZE)
-        ax.grid(True, which="both", linestyle=":", linewidth=0.5, alpha=0.6)
-        ax.legend(fontsize=FONTSIZE, loc='upper left', bbox_to_anchor=(1.01, 1),
-                  borderaxespad=0., title="scale factor", title_fontsize=FONTSIZE)
+def plot_lines(grouped, ax, scale_style, y_label):
+    """Draw one line per scale into ax."""
+    impl = next(iter(grouped))
+    for s in sorted(grouped[impl]):
+        points = sorted(grouped[impl][s])
+        ds = [pt[0] for pt in points]
+        ys = [pt[1] for pt in points]
+        style = scale_style[s]
+        ax.plot(
+            ds, ys,
+            label=rf"$\pm 2^{{{s}}}$",
+            marker=style["marker"],
+            markersize=16,
+            linewidth=1.5,
+        )
+    ax.tick_params(labelsize=FONTSIZE)
+    ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
+    ax.yaxis.get_offset_text().set_fontsize(FONTSIZE)
+    ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
+    ax.set_ylabel(y_label, fontsize=FONTSIZE)
+    ax.grid(True, which="both", linestyle=":", linewidth=0.5, alpha=0.6)
+    ax.legend(fontsize=FONTSIZE, loc='upper left', bbox_to_anchor=(1.01, 1),
+              borderaxespad=0., title="scale factor", title_fontsize=FONTSIZE)
 
 def build_heatmap_grid(grouped):
     """
@@ -72,57 +70,56 @@ def build_heatmap_grid(grouped):
     return all_ds, all_scales, grids
 
 
-def plot_heatmaps(grids, all_ds, all_scales, axes_row, cmap, value_descriptor):
-    """Draw one heatmap per impl into the given row of axes."""
-    impls = sorted(grids.keys())
-    for i, impl in enumerate(impls):
-        ax = axes_row[i]
-        Z = grids[impl]
-        finite = Z[np.isfinite(Z)]
-        vmin, vmax = (finite.min(), finite.max()) if finite.size > 0 else (0.0, 1.0)
-        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-        im = ax.imshow(
-            Z,
-            cmap=cmap,
-            norm=norm,
-            aspect='auto',
-            origin='lower',
-            interpolation='nearest',
-        )
-        labels = {(r, c): f"{Z[r, c]:.2g}"
-                  for r in range(Z.shape[0]) for c in range(Z.shape[1])
-                  if np.isfinite(Z[r, c])}
-        max_len = max((len(s) for s in labels.values()), default=5)
-        cell_fontsize = FONTSIZE * min(1.0, 5 / max_len)
+def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
+    """Draw the heatmap for the single impl into ax."""
+    impl = next(iter(grids))
+    Z = grids[impl]
+    finite = Z[np.isfinite(Z)]
+    vmin, vmax = (finite.min(), finite.max()) if finite.size > 0 else (0.0, 1.0)
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    im = ax.imshow(
+        Z,
+        cmap=cmap,
+        norm=norm,
+        aspect='auto',
+        origin='lower',
+        interpolation='nearest',
+    )
+    labels = {(r, c): f"{Z[r, c]:.2g}"
+              for r in range(Z.shape[0]) for c in range(Z.shape[1])
+              if np.isfinite(Z[r, c])}
+    max_len = max((len(s) for s in labels.values()), default=5)
+    cell_fontsize = FONTSIZE * min(1.0, 5 / max_len)
 
-        for (row, col), label in labels.items():
-            rgba = cmap(norm(Z[row, col]))
-            luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
-            text_color = "white" if luminance < 0.5 else "black"
-            ax.text(col, row, label, ha="center", va="center",
-                    fontsize=cell_fontsize, color=text_color)
-        ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
-        ax.set_ylabel("scale factor", fontsize=FONTSIZE)
-        ax.set_xticks(range(len(all_ds)))
-        ax.set_xticklabels(all_ds, fontsize=FONTSIZE, rotation=45, ha='right')
-        ax.set_yticks(range(len(all_scales)))
-        ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=FONTSIZE)
-        cb = ax.figure.colorbar(im, ax=ax, shrink=0.75)
-        cb.set_label(r"$f_A(n)$", fontsize=FONTSIZE)
-        cb.ax.tick_params(labelsize=FONTSIZE)
-        cb.ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
-        cb_ot = cb.ax.yaxis.get_offset_text()
-        cb_ot.set_fontsize(FONTSIZE)
-        cb_ot.set_ha('left')
-        cb_ot.set_x(0)
+    for (row, col), label in labels.items():
+        rgba = cmap(norm(Z[row, col]))
+        luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
+        text_color = "white" if luminance < 0.5 else "black"
+        ax.text(col, row, label, ha="center", va="center",
+                fontsize=cell_fontsize, color=text_color)
+    ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
+    ax.set_ylabel("scale factor", fontsize=FONTSIZE)
+    ax.set_xticks(range(len(all_ds)))
+    ax.set_xticklabels(all_ds, fontsize=FONTSIZE, rotation=45, ha='right')
+    ax.set_yticks(range(len(all_scales)))
+    ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=FONTSIZE)
+    cb = ax.figure.colorbar(im, ax=ax, shrink=0.75)
+    cb.set_label(y_label, fontsize=FONTSIZE)
+    cb.ax.tick_params(labelsize=FONTSIZE)
+    cb.ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
+    cb_ot = cb.ax.yaxis.get_offset_text()
+    cb_ot.set_fontsize(FONTSIZE)
+    cb_ot.set_ha('left')
+    cb_ot.set_x(0)
 
-def plot_max_vals(paths, figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
+def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
     if isinstance(paths, str):
         paths = [paths]
 
     grouped, value_descriptor = collect_max_vals(paths)
     impls = sorted(grouped.keys())
-    n_impls = len(impls)
+    if len(impls) != 1:
+        raise ValueError(f"Expected exactly one impl in paths, got: {impls}")
 
     all_ds, all_scales, grids = build_heatmap_grid(grouped)
     heatmap_cmap = mpl.cm.get_cmap('cividis')
@@ -134,13 +131,11 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
     heat_w = max(6.0, len(all_ds) * 1.5)
     plot_h = max(6.0, len(all_scales) * 1.0)
     fig, axes = plt.subplots(
-        n_impls, 2,
-        figsize=(line_w + heat_w, plot_h * n_impls),
+        1, 2,
+        figsize=(line_w + heat_w, plot_h),
         gridspec_kw={'width_ratios': [line_w, heat_w]},
-        squeeze=False,
     )
 
-    # Shared scale-factor styling for the line plots
     markers = ['o', 's', '^', 'D', 'v', 'P', 'X', '*', '<', '>', 'h', 'p']
     all_scales_for_lines = sorted({s for impl_data in grouped.values() for s in impl_data})
     scale_style = {
@@ -148,35 +143,46 @@ def plot_max_vals(paths, figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
         for i, s in enumerate(all_scales_for_lines)
     }
 
-    line_axes = [axes[i][0] for i in range(n_impls)]
-    heat_axes = [axes[i][1] for i in range(n_impls)]
+    plot_lines(grouped, axes[0], scale_style, y_label)
+    plot_heatmap(grids, all_ds, all_scales, axes[1], cmap=heatmap_cmap, y_label=y_label)
 
-    plot_lines(grouped, line_axes, scale_style, value_descriptor)
-    plot_heatmaps(grids, all_ds, all_scales, heat_axes,
-                  cmap=heatmap_cmap, value_descriptor=value_descriptor)
-
-    fig.tight_layout(w_pad=6, h_pad=4)
+    fig.tight_layout(w_pad=6)
     return fig
 
 
 def main():
-    if len(sys.argv) != 2:
-        print(f"Usage: {sys.argv[0]} <unique_dir>")
+    if len(sys.argv) != 3:
+        print(f"Usage: {sys.argv[0]} <input_type_dir> <impl>")
+        print(f"  e.g. {sys.argv[0]} results/raw_data/test2c openblas")
         sys.exit(1)
 
-    unique_dir = Path(sys.argv[1])
+    input_type_dir = Path(sys.argv[1])
+    impl = sys.argv[2]
+    input_type = input_type_dir.name
+
+    y_label_map = {
+        "test2c": r"$f_A(n)$",
+        "test3":  r"$f_B(n)$",
+    }
+    y_label = y_label_map.get(input_type, r"$f(n)$")
+
     WIDTH = 60
-    prefix = f"━━━ Generating figure from {unique_dir} "
+    prefix = f"━━━ Generating figure for {input_type} / {impl} "
     print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)))
-    paths = sorted((unique_dir / "raw_data").glob("**/f_of_n.fp64"))
+
+    paths = sorted(input_type_dir.glob(f"**/{impl}/f_of_n.fp64"))
     if not paths:
-        print(f"No f_of_n.fp64 files found under {unique_dir / 'raw_data'}")
+        print(f"No f_of_n.fp64 files found for impl '{impl}' under {input_type_dir}")
         sys.exit(1)
 
-    fig = plot_max_vals(paths)
-    output_path = unique_dir / "figure.png"
+    fig = plot_max_vals(paths, y_label=y_label)
+
+    output_dir = Path("results/figures")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{input_type}_{impl}.png"
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
+
     sep = "━" * 60
     print(sep)
     print(f"  Figure written to:")
