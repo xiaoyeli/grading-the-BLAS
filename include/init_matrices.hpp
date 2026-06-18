@@ -130,7 +130,7 @@ void init_test1a_matrices( int seed, const int dim, T *A, const int lda, T *B, c
                 B[i + j*ldb] = 0.0;
             }
             if ( C_mask ){
-                C_mask[i + j*ldcm] = (zero_rows_mask_A[i] || zero_cols_mask_B[j]) ? 1.0 : 0.0;
+                C_mask[i + j*ldcm] = (zero_rows_mask_A[i] || zero_cols_mask_B[j]) ? 0.0 : NAN;
             }
         }
     }
@@ -185,7 +185,7 @@ void init_test1b_matrices( int seed, const int dim, T *A, const int lda, T *B, c
     for ( int s = 0; s < target_rows_idx_A.size(); ++s ){
 
         // every t contributes either A[row,t]=0 or B[t,col]=0 → C[row,col] = 0 exactly
-        C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] = 1.0;
+        C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] = 0.0;
 
         std::shuffle(sparsity_mask_A.begin(), sparsity_mask_A.end(), gen);
         for ( int t = 0; t < dim; ++t ){
@@ -256,16 +256,14 @@ void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, c
 
     for ( int s = 0; s < target_rows_idx_A.size(); ++s ){
 
-        // 2 = one tiny product survives (magnitude ~ 2^{-2*log2_max_scl_factor})
-        // 1 = every A[row,t]*B[t,col] term is zero → C[row,col] = 0 exactly
-        C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] = target_rows_cols_with_nonzero_mask[s] ? 2.0 : 1.0;
-        
         std::shuffle(sparsity_mask_A.begin(), sparsity_mask_A.end(), gen);
         std::shuffle(nonzero_mask.begin(), nonzero_mask.end(), gen);
+        double target_val = 0.0;
         for ( int t = 0; t < dim; ++t ){
             if ( target_rows_cols_with_nonzero_mask[s] && nonzero_mask[t] ){
                 A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], -1.0 * log2_max_scl_factor);
                 B[t + target_cols_idx_B[s]*ldb] = std::ldexp(B[t + target_cols_idx_B[s]*ldb], -1.0 * log2_max_scl_factor);
+                target_val = A[target_rows_idx_A[s] + t*lda] * B[t + target_cols_idx_B[s]*ldb];
             }
             else if ( sparsity_mask_A[t] ){
                 A[target_rows_idx_A[s] + t*lda] = 0.0;
@@ -275,6 +273,9 @@ void init_test1c_matrices( int seed, const int dim, T *A, const int lda, T *B, c
                 B[t + target_cols_idx_B[s]*ldb] = 0.0;
                 A[target_rows_idx_A[s] + t*lda] = std::ldexp(A[target_rows_idx_A[s] + t*lda], log2_max_scl_factor);
             }
+        }
+        if ( C_mask ){
+            C_mask[target_rows_idx_A[s] + target_cols_idx_B[s]*ldcm] = target_val;
         }
     }
 
@@ -518,22 +519,19 @@ void init_matrices( std::string type, const int log2_max_scl_factor, const int s
         assert( seed == 0 && "test matrices must be deterministically generated" );
 
         if ( type == "test1a" ){
-            std::vector<double> C_mask(m*n);
-            init_zero_matrix(m, n, &C_mask[0], m);
+            std::vector<double> C_mask(m*n, NAN);
             init_test1a_matrices( seed, m, A, lda, B, ldb, &C_mask[0], m);
             std::string path_string = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
             dump_matrix(m, n, &C_mask[0], m, path_string + "/values.fp64");
         }
         else if ( type == "test1b" ){
-            std::vector<double> C_mask(m*n);
-            init_zero_matrix(m, n, &C_mask[0], m);
+            std::vector<double> C_mask(m*n, NAN);
             init_test1b_matrices( seed, m, A, lda, B, ldb, &C_mask[0], m);
             std::string path_string = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
             dump_matrix(m, n, &C_mask[0], m, path_string + "/values.fp64");
         }
         else if ( type == "test1c" ){
-            std::vector<double> C_mask(m*n);
-            init_zero_matrix(m, n, &C_mask[0], m);
+            std::vector<double> C_mask(m*n, NAN);
             init_test1c_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor, &C_mask[0], m);
             std::string path_string = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
             dump_matrix(m, n, &C_mask[0], m, path_string + "/values.fp64");
