@@ -78,25 +78,38 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
     vmin, vmax = (finite.min(), finite.max()) if finite.size > 0 else (0.0, 1.0)
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     im = ax.imshow(
-        Z,
+        np.where(np.isfinite(Z), Z, np.nan),
         cmap=cmap,
         norm=norm,
         aspect='auto',
         origin='lower',
         interpolation='nearest',
     )
-    labels = {(r, c): f"{Z[r, c]:.2g}"
-              for r in range(Z.shape[0]) for c in range(Z.shape[1])
-              if np.isfinite(Z[r, c])}
+    labels = {}
+    for r in range(Z.shape[0]):
+        for c in range(Z.shape[1]):
+            val = Z[r, c]
+            if np.isposinf(val):
+                labels[(r, c)] = "+INF"
+            elif np.isneginf(val):
+                labels[(r, c)] = "-INF"
+            elif np.isfinite(val):
+                labels[(r, c)] = f"{val:.2g}"
     max_len = max((len(s) for s in labels.values()), default=5)
     cell_fontsize = FONTSIZE * min(1.0, 5 / max_len)
 
     for (row, col), label in labels.items():
-        rgba = cmap(norm(Z[row, col]))
-        luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
-        text_color = "white" if luminance < 0.5 else "black"
+        val = Z[row, col]
+        if not np.isfinite(val):
+            ax.add_patch(mpl.patches.Rectangle(
+                (col - 0.5, row - 0.5), 1, 1, color='red', zorder=2))
+            text_color = "white"
+        else:
+            rgba = cmap(norm(val))
+            luminance = 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2]
+            text_color = "white" if luminance < 0.5 else "black"
         ax.text(col, row, label, ha="center", va="center",
-                fontsize=cell_fontsize, color=text_color)
+                fontsize=cell_fontsize, color=text_color, zorder=3)
     ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
     ax.set_ylabel("scale factor", fontsize=FONTSIZE)
     ax.set_xticks(range(len(all_ds)))
@@ -161,16 +174,20 @@ def main():
     input_type = input_type_dir.name
 
     y_label_map = {
-        "test2c": r"$f_A(n)$",
-        "test3":  r"$f_B(n)$",
+        "test2c":                r"$f_A(n)$",
+        "test3":                 r"$f_B(n)$",
+        "test2c_w_inner_permute": "max relative error",
+        "test2c_w_outer_permute": "max relative error",
     }
     y_label = y_label_map.get(input_type, r"$f(n)$")
+
+    filename = "rel_errors.fp64" if "permute" in input_type else "f_of_n.fp64"
 
     WIDTH = 60
     prefix = f"━━━ Generating figure for {input_type} / {impl} "
     print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)))
 
-    paths = sorted(input_type_dir.glob(f"**/{impl}/f_of_n.fp64"))
+    paths = sorted(input_type_dir.glob(f"**/{impl}/{filename}"))
     if not paths:
         print(f"No f_of_n.fp64 files found for impl '{impl}' under {input_type_dir}")
         sys.exit(1)
