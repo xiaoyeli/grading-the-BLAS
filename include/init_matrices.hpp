@@ -521,22 +521,22 @@ void init_matrices( std::string type, const int log2_max_scl_factor, const int s
             std::vector<double> C_mask(m*n);
             init_zero_matrix(m, n, &C_mask[0], m);
             init_test1a_matrices( seed, m, A, lda, B, ldb, &C_mask[0], m);
-            std::string mask_path = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
-            dump_matrix(m, n, &C_mask[0], m, mask_path + "/values.fp64");
+            std::string path_string = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
+            dump_matrix(m, n, &C_mask[0], m, path_string + "/values.fp64");
         }
         else if ( type == "test1b" ){
             std::vector<double> C_mask(m*n);
             init_zero_matrix(m, n, &C_mask[0], m);
             init_test1b_matrices( seed, m, A, lda, B, ldb, &C_mask[0], m);
-            std::string mask_path = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
-            dump_matrix(m, n, &C_mask[0], m, mask_path + "/values.fp64");
+            std::string path_string = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
+            dump_matrix(m, n, &C_mask[0], m, path_string + "/values.fp64");
         }
         else if ( type == "test1c" ){
             std::vector<double> C_mask(m*n);
             init_zero_matrix(m, n, &C_mask[0], m);
             init_test1c_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor, &C_mask[0], m);
-            std::string mask_path = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
-            dump_matrix(m, n, &C_mask[0], m, mask_path + "/values.fp64");
+            std::string path_string = raw_data_dir + construct_metadata_path("target_value_mask", type, m, n, k, log2_max_scl_factor);
+            dump_matrix(m, n, &C_mask[0], m, path_string + "/values.fp64");
         }
         else if ( type == "test2a" ){
             init_test2a_matrices( seed, m, A, lda, B, ldb, log2_max_scl_factor);
@@ -596,7 +596,7 @@ void init_matrices( std::string type, const int log2_max_scl_factor, const int s
 #endif
 #if defined(DUMP_A_B)
     // dump A and B; note that dump_matrix overwrites every time
-    path_string = raw_data_dir + construct_metadata_path("A", type, m, n, k, log2_max_scl_factor);
+    std::string path_string = raw_data_dir + construct_metadata_path("A", type, m, n, k, log2_max_scl_factor);
     dump_matrix(m, k, &A[0], lda, path_string + "/values.fp64");
     path_string = raw_data_dir + construct_metadata_path("B", type, m, n, k, log2_max_scl_factor);
     dump_matrix(k, n, &B[0], ldb, path_string + "/values.fp64");
