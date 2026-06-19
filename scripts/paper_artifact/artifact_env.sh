@@ -9,7 +9,7 @@ set +v
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/../.." && pwd)
 
-cd ${REPO_ROOT}/paper_artifact/src
+cd ${REPO_ROOT}/src
 
 make -f Makefile.libs
 

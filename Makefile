@@ -3,9 +3,10 @@ SHELL := /bin/bash
 BIN_DIR     := bin
 SRC_DIR     := src
 INCLUDE_DIR := include
+RESULTS_DIR := results/raw_data
 
 include $(DGEMM_CONFIG_MK)
-include config_files/test_configs/common.mk
+include config_files/common.mk
 
 CONFIG_VARS := DGEMM_IMPL_NAME SO_PATH LDFLAGS RUN_PREFIX CXX USE_CUDA CXXFLAGS \
                OUTER_SCALING INNER_SCALING LOG2_MIN_DIM LOG2_MAX_DIM \
@@ -13,10 +14,10 @@ CONFIG_VARS := DGEMM_IMPL_NAME SO_PATH LDFLAGS RUN_PREFIX CXX USE_CUDA CXXFLAGS 
                REFERENCE_GEMM DUMP_A_B VERBOSE
 $(foreach v,$(CONFIG_VARS),$(eval $(v) := $$(strip $$($(v)))))
 
-# test4 permute: default INNER_PERMUTE=10; override on the command line with
+# test4 permute: default INNER_PERMUTE=1; override on the command line with
 # INNER_PERMUTE=k or OUTER_PERMUTE=k (OUTER_PERMUTE takes precedence when non-zero)
 OUTER_PERMUTE ?= 0
-INNER_PERMUTE ?= 3
+INNER_PERMUTE ?= 1
 
 # --- common CPPFLAGS (all test binaries) ---
 COMMON_CPPFLAGS :=
@@ -44,11 +45,14 @@ COMMON_CPPFLAGS += -DDUMP_A_B
 endif
 
 # --- test4 CPPFLAGS: INPUT_TYPE=test2c + one permute mode ---
-TEST4_CPPFLAGS := $(COMMON_CPPFLAGS) -DINPUT_TYPE=\"test2c\"
+TEST4_BASE_INPUT_TYPE := test2c
+TEST4_CPPFLAGS := -DINPUT_TYPE=\"$(TEST4_BASE_INPUT_TYPE)\"
 ifneq ($(OUTER_PERMUTE),0)
 TEST4_CPPFLAGS += -DOUTER_PERMUTE=$(OUTER_PERMUTE)
+TEST4_OUTPUT_PATH := $(TEST4_BASE_INPUT_TYPE)_w_outer_permute
 else
 TEST4_CPPFLAGS += -DINNER_PERMUTE=$(INNER_PERMUTE)
+TEST4_OUTPUT_PATH := $(TEST4_BASE_INPUT_TYPE)_w_inner_permute
 endif
 
 DGEMM_WRAPPER := $(SRC_DIR)/dgemm_wrapper.cpp
@@ -70,24 +74,28 @@ $(BIN_DIR)/test3: $(SRC_DIR)/test3.cpp $(DGEMM_WRAPPER)
 
 $(BIN_DIR)/test4: $(SRC_DIR)/test4.cpp $(DGEMM_WRAPPER)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) -std=c++17 $(CXXFLAGS) $(TEST4_CPPFLAGS) -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o $@
+	$(CXX) -std=c++17 $(CXXFLAGS) $(COMMON_CPPFLAGS) $(TEST4_CPPFLAGS) -I$(INCLUDE_DIR) $^ $(LDFLAGS) -o $@
 
 # --- run targets ---
 run_test1: $(BIN_DIR)/test1
-	@mkdir -p results/raw_data
+	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test1
+	.venv/bin/python3 ./scripts/plot_results_test_1.py $(RESULTS_DIR)/test1c $(DGEMM_IMPL_NAME)
 
 run_test2: $(BIN_DIR)/test2
-	@mkdir -p results/raw_data
+	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test2
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME)
 
 run_test3: $(BIN_DIR)/test3
-	@mkdir -p results/raw_data
+	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test3
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME)
 
 run_test4: $(BIN_DIR)/test4
-	@mkdir -p results/raw_data
+	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test4
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/$(TEST4_OUTPUT_PATH) $(DGEMM_IMPL_NAME)
 
 run: run_test1 run_test2 run_test3 run_test4
 
