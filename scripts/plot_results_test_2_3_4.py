@@ -23,7 +23,7 @@ def collect_max_vals(paths):
     value_descriptor = descriptors.pop() if descriptors else "value"
     return grouped, value_descriptor
 
-def plot_lines(grouped, ax, scale_style, y_label):
+def plot_lines(grouped, ax, scale_style, y_label, show_yx=True):
     """Draw one line per scale into ax."""
     impl = next(iter(grouped))
     for s in sorted(grouped[impl]):
@@ -39,7 +39,7 @@ def plot_lines(grouped, ax, scale_style, y_label):
             linewidth=1.5,
         )
     all_ds_flat = sorted({pt[0] for points in grouped[impl].values() for pt in points})
-    if all_ds_flat:
+    if show_yx and all_ds_flat:
         ax.plot(all_ds_flat, all_ds_flat, color='black', linestyle=':', linewidth=1.5)
         ax.text(all_ds_flat[0], all_ds_flat[0], r"  $y=x$",
                 ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
@@ -143,7 +143,7 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
     cb_ot.set_ha('left')
     cb_ot.set_x(0)
 
-def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6)) -> plt.Figure:
+def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_yx=True) -> plt.Figure:
     if isinstance(paths, str):
         paths = [paths]
 
@@ -174,7 +174,7 @@ def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6)) -> pl
         for i, s in enumerate(all_scales_for_lines)
     }
 
-    plot_lines(grouped, axes[0], scale_style, y_label)
+    plot_lines(grouped, axes[0], scale_style, y_label, show_yx=show_yx)
     plot_heatmap(grids, all_ds, all_scales, axes[1], cmap=heatmap_cmap, y_label=y_label)
 
     fig.tight_layout(w_pad=6)
@@ -210,7 +210,8 @@ def main():
         print(f"No f_of_n.fp64 files found for impl '{impl}' under {input_type_dir}")
         sys.exit(1)
 
-    fig = plot_max_vals(paths, y_label=y_label)
+    show_yx = "permute" not in input_type
+    fig = plot_max_vals(paths, y_label=y_label, show_yx=show_yx)
 
     output_dir = Path("results/figures")
     output_dir.mkdir(parents=True, exist_ok=True)
