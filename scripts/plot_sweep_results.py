@@ -44,9 +44,20 @@ def plot_lines(grouped, ax, scale_style, y_label):
         ax.text(all_ds_flat[0], all_ds_flat[0], r"  $y=x$",
                 ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
     ax.set_xscale('log', base=2)
-    ax.xaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext(2.0))
-    ax.set_yscale('log', base=10)
-    ax.yaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext(10.0))
+    ax.xaxis.set_major_formatter(mpl.ticker.ScalarFormatter())
+    ax.set_yscale('log')
+
+    def _safe_y_fmt(x, pos):
+        if not np.isfinite(x) or x <= 0:
+            return ''
+        import math
+        exp = int(math.floor(math.log10(x)))
+        coeff = x / 10.0 ** exp
+        if abs(coeff - 1.0) < 0.01:
+            return rf'$10^{{{exp}}}$'
+        return f'{x:.2g}'
+
+    ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(_safe_y_fmt))
     ax.tick_params(labelsize=FONTSIZE)
     ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
     ax.set_ylabel(y_label, fontsize=FONTSIZE)
