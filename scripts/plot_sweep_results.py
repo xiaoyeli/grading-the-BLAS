@@ -38,9 +38,16 @@ def plot_lines(grouped, ax, scale_style, y_label):
             markersize=16,
             linewidth=1.5,
         )
+    all_ds_flat = sorted({pt[0] for points in grouped[impl].values() for pt in points})
+    if all_ds_flat:
+        ax.plot(all_ds_flat, all_ds_flat, color='black', linestyle=':', linewidth=1.5)
+        ax.text(all_ds_flat[0], all_ds_flat[0], r"  $y=x$",
+                ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
+    ax.set_xscale('log', base=2)
+    ax.xaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext(2.0))
+    ax.set_yscale('log', base=10)
+    ax.yaxis.set_major_formatter(mpl.ticker.LogFormatterMathtext(10.0))
     ax.tick_params(labelsize=FONTSIZE)
-    ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
-    ax.yaxis.get_offset_text().set_fontsize(FONTSIZE)
     ax.set_xlabel("dimension (m = n = k)", fontsize=FONTSIZE)
     ax.set_ylabel(y_label, fontsize=FONTSIZE)
     ax.grid(True, which="both", linestyle=":", linewidth=0.5, alpha=0.6)
