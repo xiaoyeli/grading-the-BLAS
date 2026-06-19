@@ -43,7 +43,7 @@ def build_recovery_grid(input_type_dir, impl):
     co-located target_value_mask and compute recovery %.
     Returns (all_ds, all_scales, Z).
     """
-    c_paths = sorted(input_type_dir.glob(f"**/{impl}/values.fp64"))
+    c_paths = sorted(input_type_dir.glob(f"{impl}/**/values.fp64"))
     if not c_paths:
         raise FileNotFoundError(
             f"No values.fp64 files found for impl '{impl}' under {input_type_dir}"
@@ -51,7 +51,7 @@ def build_recovery_grid(input_type_dir, impl):
 
     cells = {}
     for c_path in c_paths:
-        mask_path = c_path.parent.parent / "target_value_mask" / "values.fp64"
+        mask_path = input_type_dir / "target_value_mask" / c_path.parent.parent.name / c_path.parent.name / "values.fp64"
         if not mask_path.exists():
             print(f"  warning: no mask found alongside {c_path}, skipping")
             continue

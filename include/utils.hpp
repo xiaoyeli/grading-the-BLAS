@@ -13,9 +13,9 @@
 
 inline std::string construct_metadata_path( std::string matrix_name, std::string input_name, const int m, const int n, const int k, const int s ){
     std::string metadata_path = input_name;
+    metadata_path += "/" + matrix_name;
     metadata_path += "/scl" + std::to_string(s);
     metadata_path += "/m" + std::to_string(m) + "_n" + std::to_string(n) + "_k" + std::to_string(k);
-    metadata_path += "/" + matrix_name;
     return metadata_path;
 }
 

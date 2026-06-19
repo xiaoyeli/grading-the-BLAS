@@ -205,7 +205,7 @@ def main():
     prefix = f"━━━ Generating figure for {input_type} / {impl} "
     print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)))
 
-    paths = sorted(input_type_dir.glob(f"**/{impl}/{filename}"))
+    paths = sorted(input_type_dir.glob(f"{impl}/**/{filename}"))
     if not paths:
         print(f"No f_of_n.fp64 files found for impl '{impl}' under {input_type_dir}")
         sys.exit(1)

@@ -29,6 +29,7 @@ def parse_path_metadata(path: str) -> dict:
     m, n, k = (int(dim_match.group(i)) for i in (1, 2, 3))
     if not (m == n == k):
         raise ValueError(f"Expected m == n == k, got m={m}, n={n}, k={k} in {path}")
-    impl_name = Path(path).parent.name
+    impl_match = re.search(r'/([^/]+)/scl\d+/', path_str)
+    impl_name = impl_match.group(1) if impl_match else Path(path).parent.name
     value_descriptor = Path(path).stem
     return {"s": s, "d": m, "impl": impl_name, "value_descriptor": value_descriptor}
