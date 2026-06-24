@@ -24,7 +24,6 @@ int main(){
     std::vector<double> A(max_m*max_k);
     std::vector<double> B(max_k*max_n);
     std::vector<double> C(max_m*max_n);
-    std::vector<double> f_of_n(max_m*max_n);
 #if REFERENCE_GEMM == 1
     std::vector<double> C_ref(max_m*max_n);
     std::vector<double> absA_absB_product(max_m*max_n);
@@ -69,11 +68,10 @@ int main(){
                 dump_matrix(m, n, &absA_absB_product[0], ldc, path_string + "/values.fp" + std::to_string(sizeof(absA_absB_product[0])*8));
             }
 
-            // compute componentwise f_A(n) and write to disk
-            init_zero_matrix(m, n, &f_of_n[0], ldc);
-            calculate_f_of_n(m, n, &C[0], ldc, &C_ref[0], ldc, &absA_absB_product[0], ldc, &f_of_n[0], ldc);
+            // compute max f_A(n) and write scalar to disk
+            double max_f = calculate_max_f_of_n(m, n, &C[0], ldc, &C_ref[0], ldc, &absA_absB_product[0], ldc);
             path_string = raw_data_dir + construct_metadata_path(DGEMM_IMPL_NAME, INPUT_TYPE, m, n, k, s);
-            dump_matrix(m, n, &f_of_n[0], ldc, path_string + "/f_of_n.fp64");        }
+            dump_scalar(max_f, path_string + "/max_f_of_n.fp64");        }
     }
     return 0;
 }

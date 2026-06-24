@@ -24,7 +24,6 @@ int main(){
     std::vector<double> A(max_m*max_k);
     std::vector<double> B(max_k*max_n);
     std::vector<double> C(max_m*max_n);
-    std::vector<double> rel_errors(max_m*max_n);
     std::vector<double> C_ref(max_m*max_n);
 
     for ( int d = LOG2_MIN_DIM; d <= LOG2_MAX_DIM; ++d ){
@@ -39,7 +38,7 @@ int main(){
 
             // calculate ground truth before permuting A and B using the DGEMM implementation under test
             init_zero_matrix(m, n, &C_ref[0], ldc);
-            init_zero_matrix(m, n, &rel_errors[0], ldc);
+            double max_rel_error = 0.0;
             dgemm_wrapper(transa, transb, m, n, k, alpha, &A[0], lda, &B[0], ldb, beta, &C_ref[0], ldc);
 
 #if defined(OUTER_PERMUTE)
@@ -79,13 +78,14 @@ int main(){
                 permute_rows_inv(seed, m, k, &C[0], ldc);
                 permute_cols_inv(seed + OUTER_PERMUTE, k, n, &C[0], ldc);
 #endif
-                // calculate componentwise error, keeping the maximum over all permutations tested
-                calculate_relative_errors(m, n, &C[0], ldc, &C_ref[0], ldc, &rel_errors[0], ldc);
+                // accumulate max relative error over all permutations tested
+                double perm_max = calculate_max_relative_error(m, n, &C[0], ldc, &C_ref[0], ldc);
+                if ( std::isnan(perm_max) || perm_max > max_rel_error ) max_rel_error = perm_max;
             }
 
-            // write to disk the maximum componentwise relative error (with respect to A*B using the implementation under test) over all permutations tested
+            // write scalar max relative error to disk
             path_string = raw_data_dir + construct_metadata_path(DGEMM_IMPL_NAME, full_input_type_string, m, n, k, s);
-            dump_matrix(m, n, &rel_errors[0], ldc, path_string + "/rel_errors.fp64");
+            dump_scalar(max_rel_error, path_string + "/max_rel_error.fp64");
         }
     }
     return 0;

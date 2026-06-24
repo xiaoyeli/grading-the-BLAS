@@ -20,35 +20,43 @@ inline std::string construct_metadata_path( std::string matrix_name, std::string
 }
 
 template <typename T>
-void calculate_relative_errors( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, double *rel_errors, const int ldc3 ){
+double calculate_max_relative_error( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2 ){
     const long double flush_threshold = static_cast<long double>(DBL_TRUE_MIN);
+    double max_val = 0.0;
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
             const long double ci_ld  = static_cast<long double>(C[i + j*ldc1]);
             const long double cri_ld = static_cast<long double>(C_ref[i + j*ldc2]);
             const long double abs_err_ld = std::abs(ci_ld - cri_ld);
             const double rel_err = static_cast<double>(abs_err_ld == 0.0L ? 0.0L : abs_err_ld / std::abs(cri_ld));
-            if ( rel_err > rel_errors[i + j*ldc3] ){
-                rel_errors[i + j*ldc3] = rel_err;
-            }
+            if ( std::isnan(rel_err) || rel_err > max_val ) max_val = rel_err;
         }
     }
+    return max_val;
 }
 
 template <typename T>
-void calculate_f_of_n( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, const T *scl, const int ldc3, double *f_of_n, const int ldc4 ){
-    
+double calculate_max_f_of_n( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, const T *scl, const int ldc3 ){
     const long double unit_roundoff = std::ldexp(1.0L, -53);
-    
+    double max_val = 0.0;
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
             const long double ci_ld = static_cast<long double>(C[i + j*ldc1]);
             const long double cri_ld = static_cast<long double>(C_ref[i + j*ldc2]);
             const long double scl_ld = static_cast<long double>(scl[i + j*ldc3]);
             const long double abs_err_ld = std::abs(ci_ld - cri_ld);
-            f_of_n[i + j*ldc4] = static_cast<double>(abs_err_ld == 0.0L ? 0.0L : abs_err_ld / (scl_ld * unit_roundoff));
+            const double val = static_cast<double>(abs_err_ld == 0.0L ? 0.0L : abs_err_ld / (scl_ld * unit_roundoff));
+            if ( std::isnan(val) || val > max_val ) max_val = val;
         }
     }
+    return max_val;
+}
+
+template <typename T>
+void dump_scalar( T val, std::string outfile_path ){
+    std::filesystem::create_directories(std::filesystem::path(outfile_path).parent_path());
+    std::ofstream binfile(outfile_path, std::ios::binary);
+    binfile.write(reinterpret_cast<const char*>(&val), sizeof(T));
 }
 
 template <typename T>

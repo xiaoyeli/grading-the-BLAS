@@ -5,7 +5,7 @@ import matplotlib as mpl
 from collections import defaultdict
 from pathlib import Path
 
-from plot_utils import load_matrix, parse_path_metadata
+from plot_utils import parse_path_metadata
 
 def collect_max_vals(paths):
     """Group max values by impl and scale. Returns (grouped, value_descriptor) where
@@ -14,8 +14,7 @@ def collect_max_vals(paths):
     descriptors = set()
     for p in paths:
         meta = parse_path_metadata(p)
-        matrix = load_matrix(p)
-        max_val = np.nanmax(matrix)
+        max_val = np.fromfile(p, dtype=np.float64)[0]
         grouped[meta["impl"]][meta["s"]].append((meta["d"], max_val))
         descriptors.add(meta["value_descriptor"])
     if len(descriptors) > 1:
@@ -43,6 +42,17 @@ def plot_lines(grouped, ax, scale_style, y_label, show_yx=True):
         ax.plot(all_ds_flat, all_ds_flat, color='black', linestyle=':', linewidth=1.5)
         ax.text(all_ds_flat[0], all_ds_flat[0], r"  $y=x$",
                 ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
+    # Cap ylim before setting log scale so the tick locator never needs
+    # to compute 10^309+, which overflows float64 in old matplotlib/numpy.
+    _safe_top = np.finfo(np.float64).max / 1e3   # ~1.8e305; log10 ceil = 306, safe
+    all_ys_flat = [y for pts in grouped[impl].values() for _, y in pts]
+    if show_yx and all_ds_flat:
+        all_ys_flat = all_ys_flat + list(all_ds_flat)
+    pos_ys = [y for y in all_ys_flat if np.isfinite(y) and y > 0]
+    if pos_ys:
+        ax.set_ylim(bottom=min(pos_ys) * 0.5,
+                    top=min(max(pos_ys) * 2, _safe_top))
+
     ax.set_xscale('log', base=2)
     ax.xaxis.set_major_formatter(mpl.ticker.ScalarFormatter())
     ax.set_yscale('log')
@@ -141,7 +151,23 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
     cb_ot = cb.ax.yaxis.get_offset_text()
     cb_ot.set_fontsize(FONTSIZE)
     cb_ot.set_ha('left')
-    cb_ot.set_x(0)
+    cb_ot.set_x(0) 
+
+    # def _safe_cb_fmt(x, pos):
+    #     if not np.isfinite(x):
+    #         return ''
+    #     import math
+    #     if x == 0.0:
+    #         return '0'
+    #     exp = int(math.floor(math.log10(abs(x))))
+    #     coeff = x / 10.0 ** exp
+    #     if abs(coeff - round(coeff)) < 0.01:
+    #         coeff = round(coeff)
+    #     if exp == 0:
+    #         return f'{coeff:.3g}'
+    #     return rf'${coeff:.3g} \times 10^{{{exp}}}$'
+
+    # cb.ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(_safe_cb_fmt))
 
 def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_yx=True) -> plt.Figure:
     if isinstance(paths, str):
@@ -192,14 +218,14 @@ def main():
     input_type = input_type_dir.name
 
     y_label_map = {
-        "test2c":                r"$f_A(n)$",
-        "test3":                 r"$f_B(n)$",
-        "test2c_w_inner_permute": "max relative error",
-        "test2c_w_outer_permute": "max relative error",
+        "test2c":                r"max componentwise $f_A(n)$",
+        "test3":                 r"max componentwise $f_B(n)$",
+        "test2c_w_inner_permute": "max componentwise rel error",
+        "test2c_w_outer_permute": "max componentwise rel error",
     }
     y_label = y_label_map.get(input_type, r"$f(n)$")
 
-    filename = "rel_errors.fp64" if "permute" in input_type else "f_of_n.fp64"
+    filename = "max_rel_error.fp64" if "permute" in input_type else "max_f_of_n.fp64"
 
     WIDTH = 60
     prefix = f"━━━ Generating figure for {input_type} / {impl} "
