@@ -17,7 +17,7 @@ $(foreach v,$(CONFIG_VARS),$(eval $(v) := $$(strip $$($(v)))))
 # test4 permute: default INNER_PERMUTE=1; override on the command line with
 # INNER_PERMUTE=k or OUTER_PERMUTE=k (OUTER_PERMUTE takes precedence when non-zero)
 OUTER_PERMUTE ?= 0
-INNER_PERMUTE ?= 1
+INNER_PERMUTE ?= 10
 
 # --- common CPPFLAGS (all test binaries) ---
 COMMON_CPPFLAGS :=
