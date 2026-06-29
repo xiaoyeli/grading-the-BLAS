@@ -44,8 +44,8 @@ ifeq ($(DUMP_A_B),1)
 COMMON_CPPFLAGS += -DDUMP_A_B
 endif
 
-# --- test4 CPPFLAGS: INPUT_TYPE=test2c + one permute mode ---
-TEST4_BASE_INPUT_TYPE := test2c
+# --- test4 CPPFLAGS: INPUT_TYPE=test2b + one permute mode ---
+TEST4_BASE_INPUT_TYPE := test2b
 TEST4_CPPFLAGS := -DINPUT_TYPE=\"$(TEST4_BASE_INPUT_TYPE)\"
 ifneq ($(OUTER_PERMUTE),0)
 TEST4_CPPFLAGS += -DOUTER_PERMUTE=$(OUTER_PERMUTE)
