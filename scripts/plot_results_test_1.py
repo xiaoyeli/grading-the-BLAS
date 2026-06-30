@@ -128,9 +128,9 @@ def plot_recovery_heatmap(all_ds, all_scales, Z):
     ]
     passed = len(failures) == 0
     if passed:
-        print("  PASS: all target values recovered at 100%")
+        print("    PASS: all target values recovered at 100%")
     else:
-        print(f"  FAIL: {len(failures)} cell(s) below 100%:")
+        print(f"    FAIL: {len(failures)} cell(s) below 100%:")
         for s, d, val in failures:
             print(f"    scale=2^±{s}, dim={d}: {val:.2f}%")
 
@@ -147,10 +147,6 @@ def main():
     impl = sys.argv[2]
     input_type = input_type_dir.name
 
-    WIDTH = 60
-    prefix = f"━━━ Generating figure for {input_type} / {impl} "
-    print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)))
-
     all_ds, all_scales, Z = build_recovery_grid(input_type_dir, impl)
 
     fig, passed = plot_recovery_heatmap(all_ds, all_scales, Z)
@@ -161,11 +157,7 @@ def main():
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
-    sep = "━" * 60
-    print(sep)
-    print(f"  Figure written to:")
-    print(f"  {output_path}")
-    print(sep)
+    print(f"    Figure written to: {output_path}")
 
     sys.exit(0 if passed else 1)
 

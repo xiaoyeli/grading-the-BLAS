@@ -16,7 +16,7 @@ _CELL_THRESHOLD = {
     "test2b_w_outer_permute":  None,                      # TBD
 }
 _THRESHOLD_DESC = {
-    "test2c":                  "max f_A(n) < n",
+    "test2c":                  "max componentwise f_A(n) < n",
     "test3":                   None,
     "test2b_w_inner_permute":  None,
     "test2b_w_outer_permute":  None,
@@ -194,7 +194,7 @@ def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_
     # pass/fail check
     threshold_fn = _CELL_THRESHOLD.get(input_type)
     if threshold_fn is None:
-        print(f"  (no threshold defined for '{input_type}', skipping pass/fail check)")
+        print(f"    (no threshold defined for '{input_type}', skipping pass/fail check)")
         passed = True
     else:
         impl = next(iter(grouped))
@@ -207,9 +207,9 @@ def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_
         passed = len(failures) == 0
         desc = _THRESHOLD_DESC[input_type]
         if passed:
-            print(f"  PASS: {desc}")
+            print(f"    PASS: {desc}")
         else:
-            print(f"  FAIL ({desc}): {len(failures)} cell(s):")
+            print(f"    FAIL ({desc}): {len(failures)} cell(s):")
             for s, d, val in failures:
                 print(f"    scale=2^±{s}, dim={d}: {val:.4g}")
     impls = sorted(grouped.keys())
@@ -265,10 +265,6 @@ def main():
 
     filename = "max_rel_error.fp64" if "permute" in input_type else "max_f_of_n.fp64"
 
-    WIDTH = 60
-    prefix = f"━━━ Generating figure for {input_type} / {impl} "
-    print("\n" + prefix + "━" * max(0, WIDTH - len(prefix)))
-
     paths = sorted(input_type_dir.glob(f"{impl}/**/{filename}"))
     if not paths:
         print(f"No f_of_n.fp64 files found for impl '{impl}' under {input_type_dir}")
@@ -284,11 +280,7 @@ def main():
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
-    sep = "━" * 60
-    print(sep)
-    print(f"  Figure written to:")
-    print(f"  {output_path}")
-    print(sep)
+    print(f"    Figure written to: {output_path}")
 
     sys.exit(0 if passed else 1)
 

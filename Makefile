@@ -57,7 +57,7 @@ endif
 
 DGEMM_WRAPPER := $(SRC_DIR)/dgemm_wrapper.cpp
 
-.PHONY: run run_test1 run_test2 run_test3 run_test4 $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4 compute_distribution_stats stats
+.PHONY: run run_test1 run_test2 run_test3 run_test4 grade $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4 compute_distribution_stats stats
 
 # --- test binaries ---
 $(BIN_DIR)/test1: $(SRC_DIR)/test1.cpp $(DGEMM_WRAPPER)
@@ -98,6 +98,38 @@ run_test4: $(BIN_DIR)/test4
 	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/$(TEST4_OUTPUT_PATH) $(DGEMM_IMPL_NAME)
 
 run: run_test1 run_test2 run_test3 run_test4
+
+# Run tests 1–3, capture pass/fail, and print a letter grade.
+#   Grade A: test1 PASS and test2 PASS
+#   Grade B: test3 PASS
+#   Grade C: otherwise
+grade: $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4
+	@mkdir -p $(RESULTS_DIR); \
+	echo;\
+	echo " ** Administering Test 1"; \
+	$(RUN_PREFIX) ./$(BIN_DIR)/test1; \
+	.venv/bin/python3 ./scripts/plot_results_test_1.py $(RESULTS_DIR)/test1c $(DGEMM_IMPL_NAME); p1=$$?; \
+	echo;\
+	echo " ** Administering Test 2"; \
+	$(RUN_PREFIX) ./$(BIN_DIR)/test2; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME); p2=$$?; \
+	echo;\
+	echo " ** Administering Test 3"; \
+	$(RUN_PREFIX) ./$(BIN_DIR)/test3; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME); p3=$$?; \
+	echo;\
+	echo " ** Administering Test 4"; \
+	$(RUN_PREFIX) ./$(BIN_DIR)/test4; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/$(TEST4_OUTPUT_PATH) $(DGEMM_IMPL_NAME); \
+	echo; \
+	SEP="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
+	if [ $$p1 -eq 0 ] && [ $$p2 -eq 0 ]; then \
+	    echo "$$SEP"; echo "  Grade: A  (test1 PASS, test2 PASS)"; echo "$$SEP"; \
+	elif [ $$p3 -eq 0 ]; then \
+	    echo "$$SEP"; echo "  Grade: B  (test3 PASS)"; echo "$$SEP"; \
+	else \
+	    echo "$$SEP"; echo "  Grade: C"; echo "$$SEP"; \
+	fi
 
 # --- standalone stats utility ---
 $(BIN_DIR)/compute_distribution_stats: $(SRC_DIR)/compute_distribution_stats.cpp
