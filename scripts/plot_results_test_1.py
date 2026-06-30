@@ -104,7 +104,7 @@ def plot_recovery_heatmap(all_ds, all_scales, Z):
     ax.set_xticks(range(len(all_ds)))
     ax.set_xticklabels(all_ds, fontsize=FONTSIZE, rotation=45, ha='right')
     ax.set_yticks(range(len(all_scales)))
-    ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=FONTSIZE)
+    ax.set_yticklabels([rf"$2^{{\pm{s}}}$" for s in all_scales], fontsize=FONTSIZE)
     ax.tick_params(labelsize=FONTSIZE)
 
     ax.set_xticks([x - 0.5 for x in range(len(all_ds) + 1)], minor=True)

@@ -32,7 +32,7 @@ def plot_lines(grouped, ax, scale_style, y_label, show_yx=True):
         style = scale_style[s]
         ax.plot(
             ds, ys,
-            label=rf"$\pm 2^{{{s}}}$",
+            label=rf"$2^{{\pm{s}}}$",
             marker=style["marker"],
             markersize=16,
             linewidth=1.5,
@@ -40,7 +40,7 @@ def plot_lines(grouped, ax, scale_style, y_label, show_yx=True):
     all_ds_flat = sorted({pt[0] for points in grouped[impl].values() for pt in points})
     if show_yx and all_ds_flat:
         ax.plot(all_ds_flat, all_ds_flat, color='black', linestyle=':', linewidth=1.5)
-        ax.text(all_ds_flat[0], all_ds_flat[0], r"  $y=x$",
+        ax.text(all_ds_flat[0], all_ds_flat[0], r"  $f(n)=n$",
                 ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
     # Cap ylim before setting log scale so the tick locator never needs
     # to compute 10^309+, which overflows float64 in old matplotlib/numpy.
@@ -143,7 +143,7 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
     ax.set_xticks(range(len(all_ds)))
     ax.set_xticklabels(all_ds, fontsize=FONTSIZE, rotation=45, ha='right')
     ax.set_yticks(range(len(all_scales)))
-    ax.set_yticklabels([rf"$\pm 2^{{{s}}}$" for s in all_scales], fontsize=FONTSIZE)
+    ax.set_yticklabels([rf"$2^{{\pm{s}}}$" for s in all_scales], fontsize=FONTSIZE)
     cb = ax.figure.colorbar(im, ax=ax, shrink=0.75)
     cb.set_label(y_label, fontsize=FONTSIZE)
     cb.ax.tick_params(labelsize=FONTSIZE)
