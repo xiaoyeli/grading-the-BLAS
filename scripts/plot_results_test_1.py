@@ -119,7 +119,22 @@ def plot_recovery_heatmap(all_ds, all_scales, Z):
     cb.ax.tick_params(labelsize=FONTSIZE)
 
     fig.tight_layout()
-    return fig
+
+    failures = [
+        (all_scales[i], all_ds[j], Z[i, j])
+        for i in range(len(all_scales))
+        for j in range(len(all_ds))
+        if np.isfinite(Z[i, j]) and Z[i, j] < 100.0 - 1e-9
+    ]
+    passed = len(failures) == 0
+    if passed:
+        print("  PASS: all target values recovered at 100%")
+    else:
+        print(f"  FAIL: {len(failures)} cell(s) below 100%:")
+        for s, d, val in failures:
+            print(f"    scale=2^±{s}, dim={d}: {val:.2f}%")
+
+    return fig, passed
 
 
 def main():
@@ -138,7 +153,7 @@ def main():
 
     all_ds, all_scales, Z = build_recovery_grid(input_type_dir, impl)
 
-    fig = plot_recovery_heatmap(all_ds, all_scales, Z)
+    fig, passed = plot_recovery_heatmap(all_ds, all_scales, Z)
 
     output_dir = Path("results/figures")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -151,6 +166,8 @@ def main():
     print(f"  Figure written to:")
     print(f"  {output_path}")
     print(sep)
+
+    sys.exit(0 if passed else 1)
 
 
 if __name__ == "__main__":

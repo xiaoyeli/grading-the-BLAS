@@ -7,6 +7,22 @@ from pathlib import Path
 
 from plot_utils import parse_path_metadata
 
+# Per-cell pass/fail predicates keyed by input_type.
+# None means no threshold is defined yet; the check is skipped.
+_CELL_THRESHOLD = {
+    "test2c":                  lambda d, val: val < d,   # max f_A(n) < n
+    "test3":                   None,                      # TBD
+    "test2b_w_inner_permute":  None,                      # TBD
+    "test2b_w_outer_permute":  None,                      # TBD
+}
+_THRESHOLD_DESC = {
+    "test2c":                  "max f_A(n) < n",
+    "test3":                   None,
+    "test2b_w_inner_permute":  None,
+    "test2b_w_outer_permute":  None,
+}
+
+
 def collect_max_vals(paths):
     """Group max values by impl and scale. Returns (grouped, value_descriptor) where
     grouped is dict[impl][s] -> list of (d, max)."""
@@ -169,11 +185,33 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
 
     # cb.ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(_safe_cb_fmt))
 
-def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_yx=True) -> plt.Figure:
+def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_yx=True, input_type=None):
     if isinstance(paths, str):
         paths = [paths]
 
     grouped, value_descriptor = collect_max_vals(paths)
+
+    # pass/fail check
+    threshold_fn = _CELL_THRESHOLD.get(input_type)
+    if threshold_fn is None:
+        print(f"  (no threshold defined for '{input_type}', skipping pass/fail check)")
+        passed = True
+    else:
+        impl = next(iter(grouped))
+        failures = [
+            (s, d, val)
+            for s, points in grouped[impl].items()
+            for d, val in sorted(points)
+            if not (np.isfinite(val) and threshold_fn(d, val))
+        ]
+        passed = len(failures) == 0
+        desc = _THRESHOLD_DESC[input_type]
+        if passed:
+            print(f"  PASS: {desc}")
+        else:
+            print(f"  FAIL ({desc}): {len(failures)} cell(s):")
+            for s, d, val in failures:
+                print(f"    scale=2^±{s}, dim={d}: {val:.4g}")
     impls = sorted(grouped.keys())
     if len(impls) != 1:
         raise ValueError(f"Expected exactly one impl in paths, got: {impls}")
@@ -204,7 +242,7 @@ def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_
     plot_heatmap(grids, all_ds, all_scales, axes[1], cmap=heatmap_cmap, y_label=y_label)
 
     fig.tight_layout(w_pad=6)
-    return fig
+    return fig, passed
 
 
 def main():
@@ -220,8 +258,8 @@ def main():
     y_label_map = {
         "test2c":                r"max componentwise $f_A(n)$",
         "test3":                 r"max componentwise $f_B(n)$",
-        "test2c_w_inner_permute": "max componentwise rel error",
-        "test2c_w_outer_permute": "max componentwise rel error",
+        "test2b_w_inner_permute": "max componentwise rel error",
+        "test2b_w_outer_permute": "max componentwise rel error",
     }
     y_label = y_label_map.get(input_type, r"$f(n)$")
 
@@ -237,7 +275,8 @@ def main():
         sys.exit(1)
 
     show_yx = "permute" not in input_type
-    fig = plot_max_vals(paths, y_label=y_label, show_yx=show_yx)
+
+    fig, passed = plot_max_vals(paths, y_label=y_label, show_yx=show_yx, input_type=input_type)
 
     output_dir = Path("results/figures")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -250,6 +289,8 @@ def main():
     print(f"  Figure written to:")
     print(f"  {output_path}")
     print(sep)
+
+    sys.exit(0 if passed else 1)
 
 
 if __name__ == "__main__":
