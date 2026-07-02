@@ -138,13 +138,14 @@ def plot_recovery_heatmap(all_ds, all_scales, Z):
 
 
 def main():
-    if len(sys.argv) != 3:
-        print(f"Usage: {sys.argv[0]} <input_type_dir> <impl>")
-        print(f"  e.g. {sys.argv[0]} results/raw_data/test1c openblas")
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <impl_dir>")
+        print(f"  e.g. {sys.argv[0]} results/raw_data/test1c/openblas")
         sys.exit(1)
 
-    input_type_dir = Path(sys.argv[1])
-    impl = sys.argv[2]
+    impl_dir = Path(sys.argv[1])
+    impl = impl_dir.name
+    input_type_dir = impl_dir.parent
     input_type = input_type_dir.name
 
     all_ds, all_scales, Z = build_recovery_grid(input_type_dir, impl)

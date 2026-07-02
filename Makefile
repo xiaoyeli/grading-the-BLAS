@@ -85,22 +85,22 @@ $(BIN_DIR)/test4: $(SRC_DIR)/test4.cpp $(DGEMM_WRAPPER)
 run_test1: $(BIN_DIR)/test1
 	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test1
-	.venv/bin/python3 ./scripts/plot_results_test_1.py $(RESULTS_DIR)/test1c $(DGEMM_IMPL_NAME)
+	.venv/bin/python3 ./scripts/plot_results_test_1.py $(RESULTS_DIR)/test1c/$(DGEMM_IMPL_NAME)
 
 run_test2: $(BIN_DIR)/test2
 	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test2
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG)
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c/$(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG)
 
 run_test3: $(BIN_DIR)/test3
 	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test3
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG)
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3/$(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG)
 
 run_test4: $(BIN_DIR)/test4
 	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test4
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/$(TEST4_OUTPUT_PATH) $(DGEMM_IMPL_NAME)
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/$(TEST4_OUTPUT_PATH)/$(DGEMM_IMPL_NAME)
 
 run: run_test1 run_test2 run_test3 run_test4
 
@@ -113,19 +113,19 @@ grade: $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4
 	echo;\
 	echo " ** Administering Test 1"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test1; \
-	.venv/bin/python3 ./scripts/plot_results_test_1.py $(RESULTS_DIR)/test1c $(DGEMM_IMPL_NAME); p1=$$?; \
+	.venv/bin/python3 ./scripts/plot_results_test_1.py $(RESULTS_DIR)/test1c/$(DGEMM_IMPL_NAME); p1=$$?; \
 	echo;\
 	echo " ** Administering Test 2"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test2; \
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p2=$$?; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c/$(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p2=$$?; \
 	echo;\
 	echo " ** Administering Test 3"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test3; \
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p3=$$?; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3/$(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p3=$$?; \
 	echo;\
 	echo " ** Administering Test 4"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test4; \
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/$(TEST4_OUTPUT_PATH) $(DGEMM_IMPL_NAME); \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/$(TEST4_OUTPUT_PATH)/$(DGEMM_IMPL_NAME); \
 	echo; \
 	SEP="━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"; \
 	if [ $$p1 -eq 0 ] && [ $$p2 -eq 0 ]; then \

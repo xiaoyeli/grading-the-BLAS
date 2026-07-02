@@ -261,16 +261,15 @@ def main():
     parser = argparse.ArgumentParser(
         description="Plot max f(n) or relative error results for tests 2, 3, and 4."
     )
-    parser.add_argument("input_type_dir", type=Path,
-                        help="e.g. results/raw_data/test2c")
-    parser.add_argument("impl",
-                        help="DGEMM implementation name (e.g. openblas)")
+    parser.add_argument("impl_dir", type=Path,
+                        help="e.g. results/raw_data/test2c/openblas")
     parser.add_argument("--normalize", action="store_true", default=False,
                         help="Divide f(n) by n in the line plot (y=1 reference line, no label)")
     args = parser.parse_args()
 
-    input_type_dir = args.input_type_dir
-    impl = args.impl
+    impl_dir = args.impl_dir
+    impl = impl_dir.name
+    input_type_dir = impl_dir.parent
     normalize = args.normalize
     input_type = input_type_dir.name
 
