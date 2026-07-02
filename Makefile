@@ -118,10 +118,12 @@ grade: $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4
 	echo " ** Administering Test 2"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test2; \
 	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c/$(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p2=$$?; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c/$(DGEMM_IMPL_NAME) --normalize; p2=$$?; \
 	echo;\
 	echo " ** Administering Test 3"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test3; \
 	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3/$(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p3=$$?; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3/$(DGEMM_IMPL_NAME) --normalize; p3=$$?; \
 	echo;\
 	echo " ** Administering Test 4"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test4; \
