@@ -18,6 +18,17 @@ def load_matrix(path: str) -> np.ndarray:
         raise ValueError(f"Expected {m*n} elements, got {data.size}")
     return data.reshape((m, n), order='F')
 
+def unique_output_path(path: Path) -> Path:
+    """Return path if it doesn't exist; otherwise return path.stem-1.ext, -2, … until free."""
+    if not path.exists():
+        return path
+    i = 1
+    while True:
+        candidate = path.with_name(f"{path.stem}-{i}{path.suffix}")
+        if not candidate.exists():
+            return candidate
+        i += 1
+
 def parse_path_metadata(path: str) -> dict:
     """Extract scale factor s, dimension d (assuming m == n == k), impl name, and value descriptor from path."""
     path_str = str(path)

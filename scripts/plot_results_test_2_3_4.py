@@ -6,7 +6,7 @@ import matplotlib as mpl
 from collections import defaultdict
 from pathlib import Path
 
-from plot_utils import parse_path_metadata
+from plot_utils import parse_path_metadata, unique_output_path
 
 # Per-cell pass/fail predicates keyed by input_type.
 # None means no threshold is defined yet; the check is skipped.
@@ -306,7 +306,7 @@ def main():
 
     output_dir = Path("results/figures")
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{input_type}_{impl}.png"
+    output_path = unique_output_path(output_dir / f"{input_type}_{impl}.png")
     fig.savefig(output_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
 
