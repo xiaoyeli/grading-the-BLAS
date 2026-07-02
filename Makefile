@@ -55,6 +55,11 @@ TEST4_CPPFLAGS += -DINNER_PERMUTE=$(INNER_PERMUTE)
 TEST4_OUTPUT_PATH := $(TEST4_BASE_INPUT_TYPE)_w_inner_permute
 endif
 
+# Set NORMALIZE_F_OF_N=1 to divide f(n) by n in test2/test3 line plots.
+# Default: 0 (raw f(n) on y-axis, y=x reference line labeled f(n)=n).
+NORMALIZE_F_OF_N ?= 0
+PLOT_NORMALIZE_FLAG := $(if $(filter 1,$(NORMALIZE_F_OF_N)),--normalize,)
+
 DGEMM_WRAPPER := $(SRC_DIR)/dgemm_wrapper.cpp
 
 .PHONY: run run_test1 run_test2 run_test3 run_test4 grade $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4 compute_distribution_stats stats
@@ -85,12 +90,12 @@ run_test1: $(BIN_DIR)/test1
 run_test2: $(BIN_DIR)/test2
 	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test2
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME)
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG)
 
 run_test3: $(BIN_DIR)/test3
 	@mkdir -p $(RESULTS_DIR)
 	$(RUN_PREFIX) ./$(BIN_DIR)/test3
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME)
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG)
 
 run_test4: $(BIN_DIR)/test4
 	@mkdir -p $(RESULTS_DIR)
@@ -112,11 +117,11 @@ grade: $(BIN_DIR)/test1 $(BIN_DIR)/test2 $(BIN_DIR)/test3 $(BIN_DIR)/test4
 	echo;\
 	echo " ** Administering Test 2"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test2; \
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME); p2=$$?; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test2c $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p2=$$?; \
 	echo;\
 	echo " ** Administering Test 3"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test3; \
-	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME); p3=$$?; \
+	.venv/bin/python3 ./scripts/plot_results_test_2_3_4.py $(RESULTS_DIR)/test3 $(DGEMM_IMPL_NAME) $(PLOT_NORMALIZE_FLAG); p3=$$?; \
 	echo;\
 	echo " ** Administering Test 4"; \
 	$(RUN_PREFIX) ./$(BIN_DIR)/test4; \
