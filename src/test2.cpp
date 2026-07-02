@@ -3,6 +3,7 @@
 #include "utils.hpp"
 #include <vector>
 #include <cstdlib>
+#include <cstdint>
 #include "reference_gemm.hpp"
 
 #define RAW_DATA_DIR "results/raw_data/"
@@ -42,6 +43,20 @@ int main(){
             // initialize A and B
             init_matrices(INPUT_TYPE, s, seed, m, n, k, &A[0], lda, &B[0], ldb, raw_data_dir);
 
+            // Build inclusion mask: entry (i,j) is 0 if any summand A[i,t]*B[t,j] < 0,
+            // indicating that we are not to compute f_A(n) at C[i,j]
+            std::vector<uint8_t> include_mask(m * n, 1);
+            for ( int i = 0; i < m; ++i ){
+                for ( int j = 0; j < n; ++j ){
+                    for ( int t = 0; t < k; ++t ){
+                        if ( A[i + t*lda] * B[t + j*ldb] < 0.0 ){
+                            include_mask[i + j*m] = 0;
+                            break;
+                        }
+                    }
+                }
+            }
+
             // call the DGEMM implementation under test
             init_zero_matrix(m, n, &C[0], ldc);
             dgemm_wrapper(transa, transb, m, n, k, alpha, &A[0], lda, &B[0], ldb, beta, &C[0], ldc);
@@ -69,7 +84,7 @@ int main(){
             }
 
             // compute max f_A(n) and write scalar to disk
-            double max_f = calculate_max_f_of_n(m, n, &C[0], ldc, &C_ref[0], ldc, &absA_absB_product[0], ldc);
+            double max_f = calculate_max_f_of_n(m, n, &C[0], ldc, &C_ref[0], ldc, &absA_absB_product[0], ldc, include_mask.data(), m);
             path_string = raw_data_dir + construct_metadata_path(DGEMM_IMPL_NAME, INPUT_TYPE, m, n, k, s);
             dump_scalar(max_f, path_string + "/max_f_of_n.fp64");        }
     }

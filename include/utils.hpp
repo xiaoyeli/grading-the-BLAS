@@ -2,6 +2,7 @@
 #define UTILS_HPP
 
 #include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <cstdio>
 #include <iostream>
@@ -35,12 +36,17 @@ double calculate_max_relative_error( const int m, const int n, const double *C, 
     return max_val;
 }
 
+// include_mask: optional m×n column-major array (leading dim ldmask).
+// Entries with include_mask[i + j*ldmask] == 0 are skipped.
+// Pass nullptr to check all entries.
 template <typename T>
-double calculate_max_f_of_n( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, const T *scl, const int ldc3 ){
+double calculate_max_f_of_n( const int m, const int n, const double *C, const int ldc1, const T *C_ref, const int ldc2, const T *scl, const int ldc3,
+                              const uint8_t *include_mask = nullptr, const int ldmask = 0 ){
     const long double unit_roundoff = std::ldexp(1.0L, -53);
     double max_val = 0.0;
     for ( int i = 0; i < m; ++i ){
         for ( int j = 0; j < n; ++j ){
+            if ( include_mask && !include_mask[i + j*ldmask] ) continue;
             const long double ci_ld = static_cast<long double>(C[i + j*ldc1]);
             const long double cri_ld = static_cast<long double>(C_ref[i + j*ldc2]);
             const long double scl_ld = static_cast<long double>(scl[i + j*ldc3]);
