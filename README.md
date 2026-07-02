@@ -66,8 +66,8 @@ for ( int d = LOG2_MIN_DIM; d <= LOG2_MAX_DIM; ++d ){
 ## Running One or More Tests
 
 ```bash
-# Run all four tests
-make run DGEMM_CONFIG_MK=...
+# Run all tests
+make grade DGEMM_CONFIG_MK=...
 
 # Run individual tests
 make run_test1 DGEMM_CONFIG_MK=...
