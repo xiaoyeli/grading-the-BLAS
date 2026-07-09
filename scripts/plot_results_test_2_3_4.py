@@ -223,7 +223,7 @@ def plot_max_vals(paths, y_label="f(n)", heatmap_y_label=None, figsize_per_plot:
 
     # Build heatmap grid from raw values before any normalization.
     all_ds, all_scales, grids = build_heatmap_grid(grouped)
-    heatmap_cmap = mpl.cm.get_cmap('cividis')
+    heatmap_cmap = mpl.colormaps['cividis']
 
     # Optionally normalize f_of_n by n for the line plot (heatmap always raw).
     if show_yx and normalize:

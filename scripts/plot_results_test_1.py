@@ -79,7 +79,7 @@ def plot_recovery_heatmap(all_ds, all_scales, Z):
     plot_h = max(6.0, len(all_scales) * 1.0)
     fig, ax = plt.subplots(figsize=(heat_w, plot_h))
 
-    cmap = mpl.cm.get_cmap('Reds_r')
+    cmap = mpl.colormaps['Reds_r']
     norm = mpl.colors.Normalize(vmin=0, vmax=100)
 
     im = ax.imshow(Z, cmap=cmap, norm=norm, aspect='auto', origin='lower',

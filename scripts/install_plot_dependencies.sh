@@ -6,4 +6,4 @@ cd ${REPO_ROOT}
 
 python3 -m venv .venv
 source .venv/bin/activate
-pip3 install matplotlib
+pip3 install "matplotlib>=3.5"
