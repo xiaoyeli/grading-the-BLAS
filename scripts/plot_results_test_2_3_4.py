@@ -39,7 +39,7 @@ def collect_max_vals(paths):
     value_descriptor = descriptors.pop() if descriptors else "value"
     return grouped, value_descriptor
 
-def plot_lines(grouped, ax, scale_style, y_label, show_yx=True, normalize=False):
+def plot_lines(grouped, ax, scale_style, y_label, show_yx=True):
     """Draw one line per scale into ax."""
     impl = next(iter(grouped))
     for s in sorted(grouped[impl]):
@@ -55,19 +55,16 @@ def plot_lines(grouped, ax, scale_style, y_label, show_yx=True, normalize=False)
             linewidth=1.5,
         )
     all_ds_flat = sorted({pt[0] for points in grouped[impl].values() for pt in points})
-    if show_yx:
-        if normalize:
-            ax.axhline(y=1, color='black', linestyle=':', linewidth=1.5)
-        elif all_ds_flat:
-            ax.plot(all_ds_flat, all_ds_flat, color='black', linestyle=':', linewidth=1.5)
-            ax.text(all_ds_flat[0], all_ds_flat[0], r"  $f(n)=n$",
-                    ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
+    if show_yx and all_ds_flat:
+        ax.plot(all_ds_flat, all_ds_flat, color='black', linestyle=':', linewidth=1.5)
+        ax.text(all_ds_flat[0], all_ds_flat[0], r"  $f(n)=n$",
+                ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
     # Cap ylim before setting log scale so the tick locator never needs
     # to compute 10^309+, which overflows float64 in old matplotlib/numpy.
     _safe_top = np.finfo(np.float64).max / 1e3   # ~1.8e305; log10 ceil = 306, safe
     all_ys_flat = [y for pts in grouped[impl].values() for _, y in pts]
-    if show_yx:
-        all_ys_flat = all_ys_flat + ([1.0] if normalize else list(all_ds_flat))
+    if show_yx and all_ds_flat:
+        all_ys_flat = all_ys_flat + list(all_ds_flat)
     pos_ys = [y for y in all_ys_flat if np.isfinite(y) and y > 0]
     if pos_ys:
         ax.set_ylim(bottom=min(pos_ys) * 0.5,
@@ -171,7 +168,7 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
     cb_ot = cb.ax.yaxis.get_offset_text()
     cb_ot.set_fontsize(FONTSIZE)
     cb_ot.set_ha('left')
-    cb_ot.set_x(0)
+    cb_ot.set_x(0) 
 
     # def _safe_cb_fmt(x, pos):
     #     if not np.isfinite(x):
@@ -189,13 +186,13 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
 
     # cb.ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(_safe_cb_fmt))
 
-def plot_max_vals(paths, y_label="f(n)", heatmap_y_label=None, figsize_per_plot: tuple = (9, 6), show_yx=True, normalize=False, input_type=None):
+def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_yx=True, input_type=None):
     if isinstance(paths, str):
         paths = [paths]
 
     grouped, value_descriptor = collect_max_vals(paths)
 
-    # pass/fail check uses raw values so thresholds are independent of --normalize
+    # pass/fail check
     threshold_fn = _CELL_THRESHOLD.get(input_type)
     if threshold_fn is None:
         print(f"    (no threshold defined for '{input_type}', skipping pass/fail check)")
@@ -216,20 +213,12 @@ def plot_max_vals(paths, y_label="f(n)", heatmap_y_label=None, figsize_per_plot:
             print(f"    FAIL ({desc}): {len(failures)} cell(s):")
             for s, d, val in failures:
                 print(f"    scale=2^±{s}, dim={d}: {val:.4g}")
-
     impls = sorted(grouped.keys())
     if len(impls) != 1:
         raise ValueError(f"Expected exactly one impl in paths, got: {impls}")
 
-    # Build heatmap grid from raw values before any normalization.
     all_ds, all_scales, grids = build_heatmap_grid(grouped)
     heatmap_cmap = mpl.colormaps['cividis']
-
-    # Optionally normalize f_of_n by n for the line plot (heatmap always raw).
-    if show_yx and normalize:
-        for impl_data in grouped.values():
-            for s in list(impl_data):
-                impl_data[s] = [(d, val / d) for d, val in impl_data[s]]
 
     mpl.rcParams['font.family'] = 'serif'
     global FONTSIZE
@@ -250,8 +239,8 @@ def plot_max_vals(paths, y_label="f(n)", heatmap_y_label=None, figsize_per_plot:
         for i, s in enumerate(all_scales_for_lines)
     }
 
-    plot_lines(grouped, axes[0], scale_style, y_label, show_yx=show_yx, normalize=normalize)
-    plot_heatmap(grids, all_ds, all_scales, axes[1], cmap=heatmap_cmap, y_label=heatmap_y_label or y_label)
+    plot_lines(grouped, axes[0], scale_style, y_label, show_yx=show_yx)
+    plot_heatmap(grids, all_ds, all_scales, axes[1], cmap=heatmap_cmap, y_label=y_label)
 
     fig.tight_layout(w_pad=6)
     return fig, passed
@@ -263,45 +252,31 @@ def main():
     )
     parser.add_argument("impl_dir", type=Path,
                         help="e.g. results/raw_data/test2c/openblas")
-    parser.add_argument("--normalize", action="store_true", default=False,
-                        help="Divide f(n) by n in the line plot (y=1 reference line, no label)")
     args = parser.parse_args()
 
     impl_dir = args.impl_dir
     impl = impl_dir.name
     input_type_dir = impl_dir.parent
-    normalize = args.normalize
     input_type = input_type_dir.name
 
-    _fn_label = {
-        "test2c": r"$f_A(n)$",
-        "test3":  r"$f_B(n)$",
+    y_label_map = {
+        "test2c":                r"max componentwise $f_A(n)$",
+        "test3":                 r"max componentwise $f_B(n)$",
+        "test2b_w_inner_permute": "max componentwise rel error",
+        "test2b_w_outer_permute": "max componentwise rel error",
     }
-    fn = _fn_label.get(input_type)
-    if fn:
-        y_label         = rf"max componentwise {fn}{' / n' if normalize else ''}"
-        heatmap_y_label = rf"max componentwise {fn}"
-    else:
-        y_label         = "max componentwise rel error" if "permute" in input_type else r"$f(n)$"
-        heatmap_y_label = y_label
+    y_label = y_label_map.get(input_type, r"$f(n)$")
 
     filename = "max_rel_error.fp64" if "permute" in input_type else "max_f_of_n.fp64"
 
     paths = sorted(input_type_dir.glob(f"{impl}/**/{filename}"))
     if not paths:
-        print(f"No {filename} files found for impl '{impl}' under {input_type_dir}")
+        print(f"No f_of_n.fp64 files found for impl '{impl}' under {input_type_dir}")
         sys.exit(1)
 
     show_yx = "permute" not in input_type
 
-    fig, passed = plot_max_vals(
-        paths,
-        y_label=y_label,
-        heatmap_y_label=heatmap_y_label,
-        show_yx=show_yx,
-        normalize=normalize,
-        input_type=input_type,
-    )
+    fig, passed = plot_max_vals(paths, y_label=y_label, show_yx=show_yx, input_type=input_type)
 
     output_dir = Path("results/figures")
     output_dir.mkdir(parents=True, exist_ok=True)
