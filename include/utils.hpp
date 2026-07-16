@@ -124,15 +124,16 @@ void abs_matrix( const int m, const int n, T *A, const int lda ){
 }
 
 template <typename T>
-void impute_rowmax( const int m, const int n, T *A, const int lda ){
+void collapse_rowmax( const int m, const int n, T *A, const int lda ){
     
     for ( int i = 0; i < m; ++i ){
         T rowmax = std::abs(A[i]);
         for ( int j = 1; j < n; ++j ){
             rowmax = std::abs(A[i + j*lda]) > rowmax ? std::abs(A[i + j*lda]) : rowmax;
         }
-        for ( int j = 0; j < n; ++j ){
-            A[i + j*lda] = rowmax;
+        A[i] = rowmax;
+        for ( int j = 1; j < n; ++j ){
+            A[i + j*lda] = 0.0;
         }
     }
 
@@ -140,15 +141,16 @@ void impute_rowmax( const int m, const int n, T *A, const int lda ){
 }
 
 template <typename T>
-void impute_colmax( const int m, const int n, T *A, const int lda ){
+void collapse_colmax( const int m, const int n, T *A, const int lda ){
     
     for ( int j = 0; j < n; ++j ){
         T colmax = std::abs(A[j*lda]);
         for ( int i = 1; i < m; ++i ){
             colmax = std::abs(A[i + j*lda]) > colmax ? std::abs(A[i + j*lda]) : colmax;
         }
-        for ( int i = 0; i < m; ++i ){
-            A[i + j*lda] = colmax;
+        A[j*lda] = colmax;
+        for ( int i = 1; i < m; ++i ){
+            A[i + j*lda] = 0.0;
         }
     }
 

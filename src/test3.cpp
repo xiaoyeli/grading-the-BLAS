@@ -63,8 +63,8 @@ int main(){
             if ( ! load_matrix(path_string + "/values.fp" + std::to_string(sizeof(rowmax_absA_colmax_absB_product[0])*8), m, n, &rowmax_absA_colmax_absB_product[0], ldc ) ){
                 abs_matrix(m, k, &A[0], lda);
                 abs_matrix(k, n, &B[0], ldb);
-                impute_rowmax(m, k, &A[0], lda);
-                impute_colmax(k, n, &B[0], ldb);
+                collapse_rowmax(m, k, &A[0], lda);
+                collapse_colmax(k, n, &B[0], ldb);
                 init_zero_matrix(m, n, &rowmax_absA_colmax_absB_product[0], ldc);
                 reference_gemm(&transa, &transb, &m, &n, &k, &alpha, &A[0], &lda, &B[0], &ldb, &beta, &rowmax_absA_colmax_absB_product[0], &ldc);
                 dump_matrix(m, n, &rowmax_absA_colmax_absB_product[0], ldc, path_string + "/values.fp" + std::to_string(sizeof(rowmax_absA_colmax_absB_product[0])*8));
