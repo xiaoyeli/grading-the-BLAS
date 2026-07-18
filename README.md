@@ -2,6 +2,19 @@
 
 A floating-point accuracy benchmarking harness for DGEMM implementations. The harness sweeps over matrix dimensions and input scaling factors, computes error metrics against a high-precision reference, and produces figures summarizing the results.
 
+## Table of Contents
+
+- [Requirements](#requirements)
+- [One-time setup](#one-time-setup)
+- [Specifying a Test Configuration](#specifying-a-test-configuration)
+  - [DGEMM config](#dgemm-config-config_filesdgemm_configsmk)
+  - [Sweep config](#sweep-config-config_filescommonmk)
+- [Running the Tests](#running-the-tests)
+- [Description of Tests](#description-of-tests)
+- [Output structure](#output-structure)
+
+---
+
 ## Requirements
 
 1. A shared or static library exposing `dgemm_` via the standard BLAS Fortran API
@@ -63,7 +76,7 @@ for ( int d = LOG2_MIN_DIM; d <= LOG2_MAX_DIM; ++d ){
 
 ---
 
-## Running One or More Tests
+## Running the Tests
 
 ```bash
 # Run all tests
@@ -85,7 +98,7 @@ Rerunning any target overwrites its output directory; no timestamped directories
 
 ---
 
-## Tests
+## Description of Tests
 
 The harness has four test binaries, each targeting a different class of difficult input.
 
@@ -96,31 +109,47 @@ The harness has four test binaries, each targeting a different class of difficul
 ## Output structure
 
 ```
-results/raw_data/
-├── test1c/
-│   └── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
-│       └── values.fp64     # full C matrix (column-major float64)
+results/
+├── raw_data/
+│   ├── test1c/
+│   │   ├── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
+│   │   │   └── values.fp64                      # full C matrix (column-major float64)
+│   │   │
+│   │   └── target_value_mask/scl<s>/m<m>_n<n>_k<k>/
+│   │       └── values.fp64                      # binary mask (cached on first run)
+│   │
+│   ├── test2c/
+│   │   ├── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
+│   │   │   ├── values.fp64                      # full C matrix (column-major float64)
+│   │   │   └── max_f_of_n.fp64                  # f_A(n) error metric
+│   │   │
+│   │   ├── C_ref/scl<s>/m<m>_n<n>_k<k>/
+│   │   │   └── values.fp128                     # reference (high-precision, cached)
+│   │   │
+│   │   └── absA_absB_product/scl<s>/m<m>_n<n>_k<k>/
+│   │       └── values.fp128                     # scale factor for computation of f_A(n) (cached)
+│   │
+│   ├── test3/
+│   │   ├── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
+│   │   │   ├── values.fp64                      # full C matrix (column-major float64)
+│   │   │   └── max_f_of_n.fp64                  # f_B(n) error metric
+│   │   │
+│   │   ├── C_ref/scl<s>/m<m>_n<n>_k<k>/
+│   │   │   └── values.fp128                     # reference (high-precision, cached)
+│   │   │
+│   │   └── rowmax_absA_colmax_absB_product/scl<s>/m<m>_n<n>_k<k>/
+│   │       └── values.fp128                     # scale factor for computation of f_B(n) (cached)
+│   │
+│   └── test2b_w_inner_permute/
+│       └── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
+│           ├── values.fp64                      # full C matrix (column-major float64)
+│           └── max_rel_error.fp64               # relative error metric
 │
-├── test2c/
-│   ├── C_ref/scl<s>/m<m>_n<n>_k<k>/
-|   |   └── values.fp128            # full C reference matrix (column-major float128)
-|   |
-│   └── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
-|       ├── values.fp64             # full C matrix (column-major float64)
-│       └── max_f_of_n.fp64         # scalar float64
-│
-├── test3/
-│   ├── C_ref/scl<s>/m<m>_n<n>_k<k>/
-|   |   └── values.fp128            # full C reference matrix (column-major float128)
-|   |
-│   └── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
-|       ├── values.fp64             # full C matrix (column-major float64)
-│       └── max_f_of_n.fp64         # scalar float64
-│
-└── test2c_w_inner_permute/
-    └── <DGEMM_IMPL_NAME>/scl<s>/m<m>_n<n>_k<k>/
-        ├── values.fp64             # full C matrix (column-major float64)
-        └── max_rel_error.fp64      # scalar float64
+└── figures/
+    ├── test1c_<impl>.png                        # heatmap (% of target recovered)
+    ├── test2c_<impl>.png                        # line plot + heatmap
+    ├── test3_<impl>.png                         # line plot + heatmap
+    └── test2b_w_inner_permute_<impl>.png        # line plot + heatmap
 ```
 
-Shared reference matrices like `C_ref` are cached on first run and reused automatically.
+**Cached reference data**: `C_ref`, `target_value_mask`, `absA_absB_product`, and `rowmax_absA_colmax_absB_product` are computed once and reused automatically across implementations.
