@@ -57,8 +57,8 @@ def plot_lines(grouped, ax, scale_style, y_label, show_yx=True):
     all_ds_flat = sorted({pt[0] for points in grouped[impl].values() for pt in points})
     if show_yx and all_ds_flat:
         ax.plot(all_ds_flat, all_ds_flat, color='black', linestyle=':', linewidth=1.5)
-        ax.text(all_ds_flat[0], all_ds_flat[0], r"  $f(n)=n$",
-                ha='left', va='top', fontsize=FONTSIZE * 0.8, color='black')
+        ax.text(all_ds_flat[-1], all_ds_flat[-1], r"  $f(n)=n$",
+                ha='right', va='bottom', fontsize=FONTSIZE, color='black')
     # Cap ylim before setting log scale so the tick locator never needs
     # to compute 10^309+, which overflows float64 in old matplotlib/numpy.
     _safe_top = np.finfo(np.float64).max / 1e3   # ~1.8e305; log10 ceil = 306, safe
@@ -140,8 +140,10 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
                 labels[(r, c)] = "-INF"
             elif np.isfinite(val):
                 labels[(r, c)] = f"{val:.2g}"
-    max_len = max((len(s) for s in labels.values()), default=5)
-    cell_fontsize = FONTSIZE * min(1.0, 5 / max_len)
+    # max_len = max((len(s) for s in labels.values()), default=5)
+    # cell_fontsize = FONTSIZE * min(1.0, 8 / max_len)
+
+    cell_fontsize = FONTSIZE
 
     for (row, col), label in labels.items():
         val = Z[row, col]
@@ -161,7 +163,7 @@ def plot_heatmap(grids, all_ds, all_scales, ax, cmap, y_label):
     ax.set_xticklabels(all_ds, fontsize=FONTSIZE, rotation=45, ha='right')
     ax.set_yticks(range(len(all_scales)))
     ax.set_yticklabels([rf"$2^{{\pm{s}}}$" for s in all_scales], fontsize=FONTSIZE)
-    cb = ax.figure.colorbar(im, ax=ax, shrink=0.75)
+    cb = ax.figure.colorbar(im, ax=ax, shrink=0.85)
     cb.set_label(y_label, fontsize=FONTSIZE)
     cb.ax.tick_params(labelsize=FONTSIZE)
     cb.ax.yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useMathText=True))
@@ -222,9 +224,9 @@ def plot_max_vals(paths, y_label="f(n)", figsize_per_plot: tuple = (9, 6), show_
 
     mpl.rcParams['font.family'] = 'serif'
     global FONTSIZE
-    FONTSIZE = 18
+    FONTSIZE = 20
     line_w = figsize_per_plot[0]
-    heat_w = max(6.0, len(all_ds) * 1.5)
+    heat_w = max(6.0, len(all_ds) * 2.5)
     plot_h = max(6.0, len(all_scales) * 1.0)
     fig, axes = plt.subplots(
         1, 2,
@@ -262,8 +264,8 @@ def main():
     y_label_map = {
         "test2c":                r"max componentwise $f_A(n)$",
         "test3":                 r"max componentwise $f_B(n)$",
-        "test2b_w_inner_permute": "max componentwise rel error",
-        "test2b_w_outer_permute": "max componentwise rel error",
+        "test2b_w_inner_permute": "max componentwise rel err",
+        "test2b_w_outer_permute": "max componentwise rel err",
     }
     y_label = y_label_map.get(input_type, r"$f(n)$")
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 from plot_utils import load_matrix, parse_path_metadata, unique_output_path
 
-FONTSIZE = 18
+FONTSIZE = 20
 
 
 def compute_recovery_pct(c_vals, mask_vals, d):
@@ -76,7 +76,7 @@ def plot_recovery_heatmap(all_ds, all_scales, Z):
     mpl.rcParams['font.family'] = 'serif'
 
     heat_w = max(6.0, len(all_ds) * 1.875)
-    plot_h = max(6.0, len(all_scales) * 1.0)
+    plot_h = max(6.0, len(all_scales) * 0.8)
     fig, ax = plt.subplots(figsize=(heat_w, plot_h))
 
     cmap = mpl.colormaps['Reds_r']
